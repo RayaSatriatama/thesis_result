@@ -1,0 +1,69 @@
+# LightRAG stack — file-backed snapshot (WikiEval init 100 konteks).
+# Backup folder: ../data/backups/lightrag_storage_backup_init_100_context
+#
+# Start (from this directory):
+#   docker compose -f docker-compose.backup-init100.yml up -d --build
+# Stop:
+#   docker compose -f docker-compose.backup-init100.yml down
+#
+# URLs (avoid default stack 8631/8641, Neo4j/Qdrant/Redis ports):
+#   EN: http://localhost:19631
+#   ID: http://localhost:19632
+
+name: lightragbak_init100
+
+x-lightrag-file-env: &lightrag-file-env
+  LIGHTRAG_KV_STORAGE: JsonKVStorage
+  LIGHTRAG_DOC_STATUS_STORAGE: JsonDocStatusStorage
+  LIGHTRAG_GRAPH_STORAGE: NetworkXStorage
+  LIGHTRAG_VECTOR_STORAGE: NanoVectorDBStorage
+  WORKSPACE: ""
+  # Must match vdb_*.json in the backup (gemini-embedding-001 often uses 3072).
+  EMBEDDING_DIM: "3072"
+
+services:
+  lightrag-en:
+    build:
+      context: ./LightRAG-en
+      dockerfile: Dockerfile
+    container_name: lightrag_bak_init100_en
+    restart: unless-stopped
+    ports:
+      - "19631:9631"
+    env_file:
+      - ./LightRAG-en/.env
+    environment:
+      <<: *lightrag-file-env
+      PORT: "9631"
+      HOST: 0.0.0.0
+      WEBUI_TITLE: "init-100-context — English (file-backed)"
+    volumes:
+      - ../data/backups/lightrag_storage_backup_init_100_context/lightrag-en:/app/data/rag_storage
+      - ./LightRAG-en/data/inputs:/app/data/inputs
+      - ./LightRAG-en/config.ini.example:/app/config.ini:ro
+      - ./LightRAG-en/.env:/app/.env:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  lightrag-id:
+    build:
+      context: ./LightRAG-id
+      dockerfile: Dockerfile
+    container_name: lightrag_bak_init100_id
+    restart: unless-stopped
+    ports:
+      - "19632:9632"
+    env_file:
+      - ./LightRAG-id/.env
+    environment:
+      <<: *lightrag-file-env
+      PORT: "9632"
+      HOST: 0.0.0.0
+      WEBUI_TITLE: "init-100-context — Indonesia (file-backed)"
+    volumes:
+      - ../data/backups/lightrag_storage_backup_init_100_context/lightrag-id:/app/data/rag_storage
+      - ./LightRAG-id/data/inputs:/app/data/inputs
+      - ./LightRAG-id/config.ini.example:/app/config.ini:ro
+      - ./LightRAG-id/.env:/app/.env:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

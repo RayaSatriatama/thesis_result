@@ -1,0 +1,79 @@
+services:
+  neo4j:
+    image: neo4j:5.15.0
+    container_name: lightrag_neo4j
+    restart: always
+    ports:
+      - "17474:7474"
+      - "17687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/25710R@Y@STneo4j
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: lightrag_qdrant
+    restart: always
+    ports:
+      - "16333:6333"
+      - "16334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  redis:
+    image: redis:7-alpine
+    container_name: lightrag_redis
+    restart: always
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+
+  lightrag-en:
+    build:
+      context: ./LightRAG-en
+      dockerfile: Dockerfile
+    container_name: lightrag_en
+    restart: always
+    ports:
+      - "8631:9631"
+    volumes:
+      - ./LightRAG-en/data/rag_storage:/app/data/rag_storage
+      - ./LightRAG-en/data/inputs:/app/data/inputs
+      - ./LightRAG-en/config.ini:/app/config.ini
+      - ./LightRAG-en/.env:/app/.env
+    depends_on:
+      - neo4j
+      - qdrant
+      - redis
+
+  lightrag-id:
+    build:
+      context: ./LightRAG-id
+      dockerfile: Dockerfile
+    container_name: lightrag_id
+    restart: always
+    ports:
+      - "8641:9632"
+    volumes:
+      - ./LightRAG-id/data/rag_storage:/app/data/rag_storage
+      - ./LightRAG-id/data/inputs:/app/data/inputs
+      - ./LightRAG-id/config.ini:/app/config.ini
+      - ./LightRAG-id/.env:/app/.env
+    depends_on:
+      - neo4j
+      - qdrant
+      - redis
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
+  qdrant_data:
+  redis_data:

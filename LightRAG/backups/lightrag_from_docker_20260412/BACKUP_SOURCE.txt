@@ -1,0 +1,4 @@
+source=docker_compose_cp
+timestamp=2026-04-12T17:24:18+07:00
+compose=/media/raya/Data1/Projects/Programming_Projects/Skripsi/LightRAG/docker-compose.yml
+services=lightrag-en,lightrag-id paths=/app/data/rag_storage
