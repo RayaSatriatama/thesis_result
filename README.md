@@ -116,7 +116,6 @@ Skripsi/
 │               │   ├── eval_geval.py        # GEvalEvaluator (5 sub-criteria parallel)
 │               │   └── eval_ragas.py        # RagasEvaluator + FABLES (Kim et al. 2024, arXiv:2404.01261v2)
 │               └── ...        # Other agents (writer, planner, etc.)
-├── story-agent-ui/            # UI: SPA (index.html) + Story Studio (Next, lihat docs/skripsi-story-studio.md)
 ├── Streamlit/                 # Dashboard Faithfulness & perbandingan LightRAG (lihat Streamlit/README.md)
 ├── LightRAG/backups/          # Snapshot rag_storage EN/ID (lihat LightRAG/backups/README.md)
 └── tests/                     # Unit Tests
@@ -253,6 +252,11 @@ python scripts/run_api_tests.py
 
 # Run Full Test Suite (Recommended)
 python scripts/run_complete_tests.py
+
+# Uji Coba Workflow Agentic AI (CLI / Terminal)
+# Menguji alur Story Agent secara langsung tanpa menjalankan API server
+python scripts/test_full_workflow_custom.py
+python scripts/test_text_only_workflow.py
 ```
 
 ### Export Langfuse traces (API)
