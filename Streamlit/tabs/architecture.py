@@ -527,7 +527,7 @@ def render_architecture_tab() -> None:
             )
         if cur_p is None:
             st.warning(
-                "Data current tidak ditemukan. Pastikan CSV export tersedia di `Eval_Data/Agentic-AI-LightRAG/Traces/`."
+                "Data current tidak ditemukan. Pastikan CSV export tersedia di `Eval_Data/Traces/`."
             )
 
         if cur_p is not None:
@@ -539,7 +539,7 @@ def render_architecture_tab() -> None:
                     )
                     if names and set(names.keys()) == {"BaselineWikiEvalWorkflow"}:
                         st.warning(
-                            "CSV current (`Eval_Data/Agentic-AI-LightRAG/Traces/`) berisi hanya workflow baseline "
+                            "CSV current (`Eval_Data/Traces/`) berisi hanya workflow baseline "
                             "(`BaselineWikiEvalWorkflow`). Export trace Agentic AI diperlukan "
                             "untuk membandingkan."
                         )

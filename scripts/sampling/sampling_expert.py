@@ -34,7 +34,7 @@ def parse_metric(v):
 def get_latest_trace_df():
     # Load traces dari root folder
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    traces_path = os.path.join(base_dir, 'Eval_Data', 'Agentic-AI-LightRAG', 'Traces', '*.csv')
+    traces_path = os.path.join(base_dir, 'Eval_Data', 'Traces', '*.csv')
     files = glob.glob(traces_path)
     if not files:
         raise FileNotFoundError(f"Tidak ada file CSV di {traces_path}")
@@ -58,7 +58,7 @@ def get_observation_critics(trace_ids):
 
     # Load observasi terbaru
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    obs_path = os.path.join(base_dir, 'Eval_Data', 'Agentic-AI-LightRAG', 'Observations', '*.jsonl')
+    obs_path = os.path.join(base_dir, 'Eval_Data', 'Observations', '*.jsonl')
     files = glob.glob(obs_path)
     if not files:
         return {}

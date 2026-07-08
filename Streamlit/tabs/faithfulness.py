@@ -324,7 +324,7 @@ def render_faithfulness_tab() -> None:
     fables_m, ragas_m, metrics_live, tops_filtered = load_metrics_or_fallback(lang_key)
     if metrics_live:
         st.caption(
-            "Metrik dihitung dari `Eval_Data/Agentic-AI-LightRAG/Observations/*.jsonl` + 10 trace sampel skripsi; "
+            "Metrik dihitung dari `Eval_Data/Observations/*.jsonl` + 10 trace sampel skripsi; "
             "ground-truth FP manual = `Streamlit/lib/faithfulness_metrics.py` (sinkron dengan HTML generator)."
         )
     else:
@@ -738,7 +738,7 @@ def _render_baseline_comparison_section() -> None:
     if baseline_raw is None or current_raw is None:
         st.warning(
             "Data baseline atau current tidak ditemukan. "
-            "Pastikan CSV export tersedia di Eval_Data/Baselines/Traces/ dan Eval_Data/Agentic-AI-LightRAG/Traces/."
+            "Pastikan CSV export tersedia di Eval_Data/Baselines/Traces/ dan Eval_Data/Traces/."
         )
         return
 

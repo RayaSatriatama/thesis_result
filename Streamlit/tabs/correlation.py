@@ -768,7 +768,7 @@ def render_correlation_tab() -> None:
     if combined is None or combined.empty:
         st.warning(
             "Data trace tidak ditemukan. Pastikan CSV export tersedia di "
-            "Eval_Data/Baselines/Traces/ dan Eval_Data/Agentic-AI-LightRAG/Traces/."
+            "Eval_Data/Baselines/Traces/ dan Eval_Data/Traces/."
         )
         return
 

@@ -118,7 +118,7 @@ def latest_baseline_csv_path() -> Optional[Path]:
 
 def latest_current_csv_path() -> Optional[Path]:
     root = repo_root()
-    current_dir = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Traces"
+    current_dir = root / "Eval_Data" / "Traces"
     return _pick_csv_with_nonbaseline_rows(current_dir) or _find_csv(current_dir)
 
 
@@ -166,7 +166,7 @@ def load_current_df() -> Optional[pd.DataFrame]:
     """Load current traces CSV and join G-Eval raw scores from observations."""
     from lib.observations_loader import load_current_geval, load_current_claim_counts
     root = repo_root()
-    current_dir = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Traces"
+    current_dir = root / "Eval_Data" / "Traces"
     csv_path = _pick_csv_with_nonbaseline_rows(current_dir) or _find_csv(current_dir)
     if csv_path is None:
         return None

@@ -57,6 +57,7 @@ def _ensure_sampling_path() -> None:
             sys.path.remove(p)
         sys.path.insert(0, p)
 
+
 def extract_top(df_all: pd.DataFrame, prompt_filter: str) -> pd.DataFrame:
     """Same sampling as generate_faithfulness_images_10.py."""
     df = df_all[df_all["input"].astype(str).str.contains(prompt_filter, na=False)].copy()
@@ -128,7 +129,7 @@ def load_ten_story_traces_df() -> pd.DataFrame:
     # Inject GEval raw and total claims from latest observations export
     try:
         root = repo_root()
-        obs_dir_for_geval = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Observations"
+        obs_dir_for_geval = root / "Eval_Data" / "Observations"
         obs_files_for_geval = sorted(glob.glob(str(obs_dir_for_geval / "*.jsonl")))
         latest_obs_for_geval = obs_files_for_geval[-1] if obs_files_for_geval else None
         if latest_obs_for_geval:
@@ -212,7 +213,7 @@ def filter_tops_by_language(tops: pd.DataFrame, lang_filter: str) -> pd.DataFram
 
 def load_trace_claims(trace_ids: list[Any]) -> dict[str, list[dict[str, Any]]]:
     root = repo_root()
-    obs_dir = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Observations"
+    obs_dir = root / "Eval_Data" / "Observations"
     want = {str(t).strip('"') for t in trace_ids}
     
     # Store temporary lists of base and extra claims per trace

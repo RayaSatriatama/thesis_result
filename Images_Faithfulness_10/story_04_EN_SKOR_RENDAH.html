@@ -1,0 +1,111 @@
+<html><head><meta charset="utf-8"><style>
+    body { font-family: Arial, sans-serif; background: #fff; padding: 20px; color: #222; }
+    .container { display: flex; gap: 20px; max-width: 1600px; margin: auto; }
+    .column { flex: 1; padding: 15px; border-radius: 8px; background: #fafafa; border: 1px solid #ddd; }
+    h2 { font-size: 18px; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-top: 0; color: #111; }
+    .metric-question { background: #eef6ff; border: 1px solid #b8d4f0; border-radius: 6px; padding: 12px; margin-bottom: 14px; font-size: 13px; }
+    .fables-note { font-size: 12px; color: #555; margin-bottom: 12px; }
+    details.ctx-chunk { margin-bottom: 10px; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; background: #fff; }
+    details.ctx-chunk summary { cursor: pointer; font-weight: bold; color: #1a5276; }
+    .claim-card { padding: 12px; margin-bottom: 12px; border-radius: 6px; border-left: 5px solid #ccc; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+    .FAITHFUL { border-left-color: #27ae60; }
+    .UNFAITHFUL { border-left-color: #e74c3c; }
+    .CANT_VERIFY { border-left-color: #f39c12; }
+    .PARTIAL_SUPPORT { border-left-color: #8e44ad; }
+    .verdict-badge { display: inline-block; padding: 3px 6px; font-size: 10px; font-weight: bold; color: white; border-radius: 3px; margin-bottom: 5px; }
+    .badge-FAITHFUL { background: #27ae60; }
+    .badge-UNFAITHFUL { background: #e74c3c; }
+    .badge-CANT_VERIFY { background: #f39c12; }
+    .badge-PARTIAL_SUPPORT { background: #8e44ad; }
+    .highlight-match { background-color: #fdef7c; font-weight: 500; border-radius: 3px; padding: 2px; }
+    .match-ref { font-size:10px; color:#333; background:#eee; padding:1px 3px; border-radius:2px; margin-left:3px; }
+    .fp-context-eval { border-left: 4px solid #c0392b; padding: 10px 10px 10px 12px; margin-top: 10px; font-size: 12px; color: #333; background: #fff8f8; border-radius: 4px; line-height: 1.5; }
+    .faithful-partial-note { border-left: 4px solid #d68910; padding: 10px 10px 10px 12px; margin-top: 10px; font-size: 12px; color: #333; background: #fffbf0; border-radius: 4px; line-height: 1.5; }
+    .fn-gt-faithful-note { border-left: 4px solid #ca6f1e; padding: 10px 10px 10px 12px; margin-top: 10px; font-size: 12px; color: #333; background: #fff3e6; border-radius: 4px; line-height: 1.5; }
+    </style></head><body>
+    <h2>Visualisasi Faithfulness - EN (SKOR RENDAH)<br><span style="font-size:14px;color:#666">Trace ID: 470b2951081041b0d274418855feaf8b</span></h2>
+    <div class="container">
+      <div class="column">
+        <h3>1. Konteks riset (input RAGAS &amp; FABLES)</h3>
+        <p class="fables-note">Setiap klaim <strong>FAITHFUL</strong> (dan klaim <strong>false negative</strong> ber-<code>MANUAL_GT_FAITHFUL</code>) yang bukan false positive memiliki pasangan <span class="highlight-match" style="display:inline;padding:1px 4px;">highlight</span> di teks konteks dan badge <span class="match-ref" style="display:inline;">Ref:Klaim N</span> (kalimat dipilih dengan TF-IDF argmax; override opsional di <code>tfidf_anchor_override</code> pada skrip generator).</p>
+        <p class="fables-note">Verifikasi FABLES memakai gabungan string yang sama seperti runtime: join konteks dengan pemisah baris kosong + --- + baris kosong antar elemen daftar contexts.</p>
+        <div class="metric-question"><strong>user_input (Context Relevance / FABLES span):</strong><br/><p style="margin:8px 0 0 0;">Pembuatan cerita dari teks berikut: Create an educational story that helps students understand: What is the taxonomy of Dasypoda radchenkoi, and what is its relationship to Dasypoda morotei?</p></div>
+        <details class="ctx-chunk" open><summary>Konteks [0] — Rencana (Planner)</summary><div class="chunk-body" style="line-height:1.7;font-size:14px;">## Rencana Cerita (Planner Output)
+Tema: Taxonomy and species relationships of Dasypoda bees
+Tujuan Pembelajaran: Students will understand the basic principles of biological taxonomy, specifically how species are classified and how new species are identified and related to existing ones, using Dasypoda radchenkoi and Dasypoda morotei as examples. Pesan Moral: Scientific discovery requires careful observation, meticulous analysis, and an understanding of how all life is interconnected through evolutionary relationships. Outline:
+  - Pembukaan: Introduce Dr. Aris, a seasoned entomologist, and his eager student, Leo, at a natural history museum. They are preparing to study a new bee specimen, Dasypoda radchenkoi, recently discovered in a remote meadow. Dr. <span class="highlight-match">Aris explains the importance of taxonomy in understanding biodiversity.</span><span class="match-ref">Ref:Klaim 2</span> - Konflik: Leo observes a striking resemblance between the new Dasypoda radchenkoi and a known species, Dasypoda morotei, already in the museum&#x27;s collection. He wonders if they are the same species or just closely related. Dr. <span class="highlight-match">Aris explains that visual similarity can be misleading and detailed study is needed to establish taxonomy and relationships.</span><span class="match-ref">Ref:Klaim 6</span> - Klimaks: In the lab, Dr. Aris and Leo use various tools (microscopes, genetic sequencing data - explained simply) to compare Dasypoda radchenkoi and Dasypoda morotei. <span class="highlight-match">They meticulously examine physical features (morphology) like pollen brushes and wing venation, and review genetic markers.</span><span class="match-ref">Ref:Klaim 4</span> The &#x27;aha!&#x27; moment comes when they find subtle but consistent morphological differences and distinct genetic sequences, confirming Dasypoda radchenkoi as a separate but closely related species to Dasypoda morotei. They discuss how this indicates a common ancestor. - Resolusi: Leo successfully classifies Dasypoda radchenkoi, understanding its unique place in the bee family tree and its close evolutionary link to Dasypoda morotei. Dr. Aris emphasizes that taxonomy is a dynamic field, constantly evolving with new discoveries, and that understanding these relationships helps us conserve biodiversity. Leo feels proud of his contribution to scientific knowledge. Tokoh:
+  - Dr. Aris (Supporting character, mentor): Wise, patient, enthusiastic about entomology, great mentor. - Leo (Protagonist): Curious, observant, eager to learn, slightly impulsive. </div></details><details class="ctx-chunk" open><summary>Konteks [1] — Sumber riset</summary><div class="chunk-body" style="line-height:1.7;font-size:14px;">The genus *Dasypoda* is a group of bees within the family Melittidae [animaldiversity.org]. <span class="highlight-match">Here is its taxonomic classification:
+*   **Kingdom:** Animalia (animals) [animaldiversity.org]
+*   **Phylum:** Arthropoda (arthropods) [animaldiversity.org]
+*   **Class:** Insecta (insects) [animaldiversity.org]
+*   **Order:** Hymenoptera [animaldiversity.org]
+*   **Superfamily:** Apoidea [animaldiversity.org]
+*   **Family:** Melittidae (melittid bees) [animaldiversity.org]
+*   **Genus:** *Dasypoda* [animaldiversity.org]
+
+There are many known species within the genus *Dasypoda*.</span><span class="match-ref">Ref:Klaim 1</span> <span class="highlight-match">Some of these include [animaldiversity.org, en.wikipedia.org, species.wikimedia.org]:
+*   *Dasypoda albimana*
+*   *Dasypoda albipila*
+*   *Dasypoda altercator*
+*   *Dasypoda argentata*
+*   *Dasypoda aurata*
+*   *Dasypoda braccata*
+*   *Dasypoda brevicornis*
+*   *Dasypoda chinensis*
+*   *Dasypoda cingulata*
+*   *Dasypoda cockerelli*
+*   *Dasypoda comberi*
+*   *Dasypoda crassicornis*
+*   *Dasypoda delectabilis*
+*   *Dasypoda dusmeti*
+*   *Dasypoda frieseana*
+*   *Dasypoda gusenleitneri*
+*   *Dasypoda heliocharis*
+*   *Dasypoda hirtipes*
+*   *Dasypoda iberica*
+*   *Dasypoda intermedia*
+*   *Dasypoda japonica*
+*   *Dasypoda leucoura*
+*   *Dasypoda litigator*
+*   *Dasypoda longigena*
+*   *Dasypoda maura*
+*   *Dasypoda michezi*
+*   *Dasypoda morawitzi*
+*   *Dasypoda morotei*
+*   *Dasypoda oraniensis*
+*   *Dasypoda patinyi*
+*   *Dasypoda pyriformis*
+*   *Dasypoda pyrotrichia*
+*   *Dasypoda radchenkoi*
+*   *Dasypoda riftensis*
+*   *Dasypoda rudis*
+*   *Dasypoda schwarzi*
+*   *Dasypoda sichuanensis*
+*   *Dasypoda sinuata*
+*   *Dasypoda spinigera*
+*   *Dasypoda syriensis*
+*   *Dasypoda tibialis*
+*   *Dasypoda toroki*
+*   *Dasypoda tubera*
+*   *Dasypoda visnaga*
+*   *Dasypoda vulpecula*
+*   *Dasypoda warnckei*
+
+A new widespread European bee species of the genus *Dasypoda* was identified in 2016 [pubmed.ncbi.nlm.nih.gov].</span><span class="match-ref">Ref:Klaim 5</span><span class="match-ref">Ref:Klaim 9</span> </div></details><details class="ctx-chunk" open><summary>Konteks [2] — KG / retrieval</summary><div class="chunk-body" style="line-height:1.7;font-size:14px;">## KG Context (What are the basic principles of biological taxonomy and how are species classified?):
+I cannot answer questions about the basic principles of biological taxonomy and how species are classified. However, I can provide information on specific species if you have questions about them. </div></details><details class="ctx-chunk" open><summary>Konteks [3] — KG / retrieval</summary><div class="chunk-body" style="line-height:1.7;font-size:14px;">## KG Context (What is the current taxonomic classification of the genus Dasypoda, and what are its known species?):
+The genus *Dasypoda* is divided into four subgenera: *Dasypoda sensu stricto*, *Heterodasypoda*, *Microdasypoda*, and *Megadasypoda*. Known species within this genus include *Dasypoda hirtipes*, *Dasypoda crassicornis*, *Dasypoda vulpecula*, and *Dasypoda radchenkoi*. Additionally, *Dasypoda morotei* is mentioned in relation to the subgenus *Heterodasypoda*, and *Dasypoda albimana*, *Dasypoda albipila*, *Dasypoda altercator*, *Dasypoda argentata*, *Dasypoda aurata*, *Dasypoda braccata*, *Dasypoda brevicornis*, *Dasypoda chinensis*, *Dasypoda cingulata*, *Dasypoda cockerelli*, *Dasypoda comberi*, and *Dasypoda delectabilis* are listed as species within the genus. [1] </div></details><details class="ctx-chunk" open><summary>Konteks [4] — KG / retrieval</summary><div class="chunk-body" style="line-height:1.7;font-size:14px;"><span class="highlight-match">## KG Context (How were Dasypoda radchenkoi and Dasypoda morotei identified as new species, and what are their distinguishing characteristics and known relationships to other Dasypoda species?):
+Dasypoda radchenkoi was identified as a new species fortuitously through genetic barcoding of two specimens, one holotype female and one paratype male.</span><span class="match-ref">Ref:Klaim 8</span> While tiny morphological features can distinguish the females of Dasypoda radchenkoi and Dasypoda morotei, males remain unidentifiable by visual examination alone. Both species are considered near cryptic, meaning their morphology is highly similar [1]. Dasypoda radchenkoi belongs to the subgenus Heterodasypoda, and its morphology is typical of this group. Its phylogenetic position indicates that it is the sister species to Dasypoda morotei. The genus Dasypoda is divided into four subgenera: Dasypoda sensu stricto, Heterodasypoda (which includes Dasypoda morotei), Microdasypoda, and Megadasypoda [1]. ### References
+
+* [1] wikieval/Dasypoda_radchenkoi/v1 </div></details><details class="ctx-chunk" open><summary>Konteks [5] — KG / retrieval</summary><div class="chunk-body" style="line-height:1.7;font-size:14px;">## KG Context (What are the ecological roles and habitats of Dasypoda bees, particularly Dasypoda radchenkoi and Dasypoda morotei?):
+Dasypoda radchenkoi is a species of solitary bee endemic to the limestone mountains of southern Spain. It collects floral resources from plants of the genus Cistus. <span class="highlight-match">This species is classified within the subgenus Heterodasypoda and is considered sister species to Dasypoda morotei, another bee also belonging to the subgenus Heterodasypoda.</span><span class="match-ref">Ref:Klaim 10</span> Dasypoda morotei, also known as the Iberian pantaloon bee, shares highly similar morphology with Dasypoda radchenkoi, making them nearly cryptic and difficult to differentiate, particularly for males. The genus Dasypoda itself is a group of bees divided into four subgenera: Dasypoda sensu stricto (which includes the common pantaloon bee, Dasypoda hirtipes), Heterodasypoda, Microdasypoda, and Megadasypoda. [1] </div></details>
+      </div>
+      <div class="column">
+        <h3>2. Verifikasi Klaim (FABLES)</h3>
+        <div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 1:</strong> Taksonomi adalah ilmu yang mengklasifikasikan makhluk hidup.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 1</strong> &#8628; <em>"Here is its taxonomic classification:
+*   **Kingdom:** Animalia (animals) [animaldiversity.org]
+*   ..."</em></span></div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 2:</strong> Taksonomi membantu memahami keanekaragaman hayati.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 2</strong> &#8628; <em>"Aris explains the importance of taxonomy in understanding biodiversity."</em></span></div><div class="claim-card CANT_VERIFY"><span class="verdict-badge badge-CANT_VERIFY">CANT_VERIFY</span><br/><strong>Klaim 3:</strong> Lebah *Dasypoda* memiliki tubuh berbulu dan kaki panjang yang sempurna untuk mengumpulkan serbuk sari.</div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 4:</strong> Lebah *Dasypoda* memiliki rambut khusus di kakinya, yang disebut sikat serbuk sari, yang digunakan untuk mengumpulkan serbuk sari.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 4</strong> &#8628; <em>"They meticulously examine physical features (morphology) like pollen brushes and wing venation, and ..."</em></span></div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 5:</strong> Dasypoda radchenkoi* dan *Dasypoda morotei* memiliki morfologi yang sangat mirip.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 5</strong> &#8628; <em>"Some of these include [animaldiversity.org, en.wikipedia.org, species.wikimedia.org]:
+*   *Dasypoda ..."</em></span></div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 6:</strong> Kesamaan visual dapat menyesatkan dalam taksonomi.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 6</strong> &#8628; <em>"Aris explains that visual similarity can be misleading and detailed study is needed to establish tax..."</em></span></div><div class="claim-card CANT_VERIFY"><span class="verdict-badge badge-CANT_VERIFY">CANT_VERIFY</span><br/><strong>Klaim 7:</strong> DNA adalah instruksi unik untuk setiap makhluk hidup.</div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 8:</strong> Perbedaan kecil dalam DNA dapat menunjukkan seberapa dekat hubungan dua spesies.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 8</strong> &#8628; <em>"## KG Context (How were Dasypoda radchenkoi and Dasypoda morotei identified as new species, and what..."</em></span></div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 9:</strong> Dasypoda radchenkoi* adalah spesies terpisah dari *Dasypoda morotei*.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 9</strong> &#8628; <em>"Some of these include [animaldiversity.org, en.wikipedia.org, species.wikimedia.org]:
+*   *Dasypoda ..."</em></span></div><div class="claim-card FAITHFUL"><span class="verdict-badge badge-FAITHFUL">FAITHFUL</span><br/><strong>Klaim 10:</strong> Dasypoda radchenkoi* termasuk dalam subgenus *Heterodasypoda*.<br/><br/><span style="font-size:12px; color:#1e8449;"><strong>Ref:Klaim 10</strong> &#8628; <em>"This species is classified within the subgenus Heterodasypoda and is considered sister species to Da..."</em></span></div>
+      </div>
+    </div>
+    </body></html>

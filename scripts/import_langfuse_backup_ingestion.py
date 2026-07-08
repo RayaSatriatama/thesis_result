@@ -197,11 +197,9 @@ def _score_cell_to_typed(value: Any) -> Optional[Tuple[str, Any]]:
 def _trace_row_is_score_column(key: str) -> bool:
     if key in _TRACE_ROW_RESERVED_KEYS:
         return False
-    kl = key.lower()
-    if kl.endswith("_normalized"):
-        return False
     if key in _TRACE_SCORE_EXTRA_KEYS:
         return True
+    kl = key.lower()
     if kl.startswith("ragas_") or kl.startswith("geval_"):
         return True
     if kl.endswith("_score"):
@@ -234,10 +232,7 @@ def _resolve_score_observation_id(
 # Langfuse list columns use ``{name}-{SOURCE}-{dataType}``. In this project the Python SDK
 # logs most metrics as **API**; only the thesis column ``Faithfulness`` is **EVAL**.
 def _infer_score_source(column_name: str) -> str:
-    cn = str(column_name).lower()
-    if cn == "faithfulness" or cn.startswith("fables_") or cn.startswith("ragas_") or cn.startswith("geval_"):
-        return "EVAL"
-    return "API"
+    return "EVAL" if str(column_name) == "Faithfulness" else "API"
 
 
 def _resolve_score_source(column_name: str, mode: str) -> str:
@@ -255,9 +250,8 @@ def _build_score_events(
     score_source_mode: str = "auto",
 ) -> List[Dict[str, Any]]:
     env = _env_name(trace_row.get("environment"))
-    # Gunakan timestamp dari trace agar skor sinkron dengan waktu trace di Langfuse
-    # Jika menggunakan datetime.now(), skor bisa tidak muncul karena filter tanggal UI Langfuse
-    ts = str(trace_row["timestamp"])
+    # Fresh envelope time so score-create is not ordered before trace materialization on the server.
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
     obs_by_name = _last_observation_id_by_name(observations) if link_observation else {}
     events: List[Dict[str, Any]] = []
 
@@ -279,7 +273,7 @@ def _build_score_events(
             body["value"] = int(val)
         else:
             body["dataType"] = "CATEGORICAL"
-            body["stringValue"] = str(val)
+            body["value"] = str(val)
         oid = _resolve_score_observation_id(
             column_name, obs_by_name, link_observation=link_observation
         )
@@ -296,24 +290,6 @@ def _build_score_events(
         dtype, val = typed
         sk = str(key)
         _append_score_event(sk, dtype, val, _resolve_score_source(sk, score_source_mode))
-
-    for obs in observations:
-        nm = str(obs.get("name") or "")
-        if nm == "geval_coherence":
-            out = obs.get("output", {})
-            if isinstance(out, str):
-                try:
-                    import json
-                    out = json.loads(out)
-                except Exception:
-                    out = {}
-            if isinstance(out, dict) and "geval_coherence" in out:
-                try:
-                    raw_score = float(out["geval_coherence"])
-                    src = "EVAL" if score_source_mode == "auto" else score_source_mode
-                    _append_score_event("geval_coherence", "NUMERIC", raw_score, src)
-                except (ValueError, TypeError):
-                    pass
 
     return events
 
@@ -341,41 +317,8 @@ def _trace_event_body(row: Dict[str, Any]) -> Dict[str, Any]:
         body["version"] = row["version"]
     if row.get("public") is not None:
         body["public"] = row["public"]
-    import json
-    trace_tags = []
-    
-    # 1. Determine Type Tag
-    trace_name = str(row.get("name", ""))
-    if "Baseline" in trace_name:
-        trace_tags.append("Baseline")
-    else:
-        trace_tags.append("Agentic-AI-LightRAG")
-        
-    # 2. Determine Language Tag
-    existing_tags_raw = row.get("tags")
-    existing_tags = []
-    if isinstance(existing_tags_raw, str):
-        try:
-            existing_tags = json.loads(existing_tags_raw)
-        except Exception:
-            pass
-    elif isinstance(existing_tags_raw, list):
-        existing_tags = existing_tags_raw
-        
-    existing_tags_lower = [str(t).lower() for t in existing_tags]
-    if "en" in existing_tags_lower:
-        trace_tags.append("EN")
-    elif "id" in existing_tags_lower:
-        trace_tags.append("ID")
-    else:
-        # Fallback to checking the input text prompt
-        input_text = str(row.get("input", "")).lower()
-        if "buat cerita" in input_text or "cerita edukatif" in input_text:
-            trace_tags.append("ID")
-        else:
-            trace_tags.append("EN")
-            
-    body["tags"] = trace_tags
+    if isinstance(row.get("tags"), list):
+        body["tags"] = row["tags"]
     md = row.get("metadata")
     if isinstance(md, dict) and md:
         body["metadata"] = md
@@ -566,13 +509,13 @@ def main() -> None:
         "--traces-dir",
         type=str,
         default=None,
-        help="Directory of trace JSONL files (default: Eval_Data/Agentic-AI-LightRAG/Traces or backup-root/Traces)",
+        help="Directory of trace JSONL files (default: Eval_Data/Traces or backup-root/Traces)",
     )
     parser.add_argument(
         "--observations-dir",
         type=str,
         default=None,
-        help="Directory of observation JSONL files (default: Eval_Data/Agentic-AI-LightRAG/Observations or backup-root/Observations)",
+        help="Directory of observation JSONL files (default: Eval_Data/Observations or backup-root/Observations)",
     )
     parser.add_argument(
         "--trace-id",
@@ -636,8 +579,8 @@ def main() -> None:
         traces_dir = Path(args.traces_dir).resolve() if args.traces_dir else br / "Traces"
         obs_dir = Path(args.observations_dir).resolve() if args.observations_dir else br / "Observations"
     else:
-        traces_dir = Path(args.traces_dir).resolve() if args.traces_dir else eval_data / "Agentic-AI-LightRAG" / "Traces"
-        obs_dir = Path(args.observations_dir).resolve() if args.observations_dir else eval_data / "Agentic-AI-LightRAG" / "Observations"
+        traces_dir = Path(args.traces_dir).resolve() if args.traces_dir else eval_data / "Traces"
+        obs_dir = Path(args.observations_dir).resolve() if args.observations_dir else eval_data / "Observations"
 
     trace_paths = _glob_jsonl(traces_dir)
     obs_paths = _glob_jsonl(obs_dir)

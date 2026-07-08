@@ -177,39 +177,6 @@ class StoryConfig:
     DEFAULT_STORY_STYLE = os.getenv("DEFAULT_STORY_STYLE", "")
     DEFAULT_EMOTIONAL_TONE = os.getenv("DEFAULT_EMOTIONAL_TONE", "mengangkat semangat")
 
-    # Story length descriptions (loaded from .env)
-    STORY_LENGTHS = {
-        "id": {
-            "short": os.getenv("STORY_LENGTH_SHORT_ID", "1-2 halaman (sekitar 100-500 kata)"),
-            "medium": os.getenv("STORY_LENGTH_MEDIUM_ID", "3-5 halaman (sekitar 500-1000 kata)"),
-            "long": os.getenv("STORY_LENGTH_LONG_ID", "6+ halaman (sekitar 1000-3000 kata)")
-        },
-        "en": {
-            "short": os.getenv("STORY_LENGTH_SHORT_EN", "1-2 pages (around 100-500 words)"),
-            "medium": os.getenv("STORY_LENGTH_MEDIUM_EN", "3-5 pages (around 500-1000 words)"),
-            "long": os.getenv("STORY_LENGTH_LONG_EN", "6+ pages (around 1000-3000 words)")
-        }
-    }
-
-    @classmethod
-    def get_story_length_description(cls, length_key: str, lang: str = "id") -> str:
-        """Convert a short length key like 'medium' into its full description based on language."""
-        if not length_key:
-            return ""
-        
-        lang = lang.lower().strip()
-        if lang not in ["id", "en"]:
-            lang = "id"
-            
-        key = length_key.lower().strip()
-        if key in ["short", "pendek"]:
-            return cls.STORY_LENGTHS[lang]["short"]
-        elif key in ["medium", "sedang"]:
-            return cls.STORY_LENGTHS[lang]["medium"]
-        elif key in ["long", "panjang"]:
-            return cls.STORY_LENGTHS[lang]["long"]
-        return length_key  # Fallback to the raw string if not recognized
-
     # Feature Flags for Writers (Default: Disabled)
     ENABLE_IMAGE_WRITER = os.getenv("ENABLE_IMAGE_WRITER", "false").lower() == "true"
     ENABLE_DIAGRAM_WRITER = os.getenv("ENABLE_DIAGRAM_WRITER", "false").lower() == "true"
@@ -244,13 +211,6 @@ class StoryConfig:
         }
     }
 
-    @classmethod
-    def get_story_style_description(cls, key: str, lang: str = "id") -> str:
-        if not key: return ""
-        lang = lang.lower().strip()
-        if lang not in ["id", "en"]: lang = "id"
-        return cls.STORY_STYLES[lang].get(key.lower().strip(), key)
-
     # Available narrative styles (Gaya narasi - monolog/dialog)
     NARRATIVE_STYLES = {
         "id": {
@@ -273,13 +233,6 @@ class StoryConfig:
         }
     }
 
-    @classmethod
-    def get_narrative_style_description(cls, key: str, lang: str = "id") -> str:
-        if not key: return ""
-        lang = lang.lower().strip()
-        if lang not in ["id", "en"]: lang = "id"
-        return cls.NARRATIVE_STYLES[lang].get(key.lower().strip(), key)
-
     # Available target age groups (Kelompok usia target)
     TARGET_AGE_GROUPS = {
         "id": {
@@ -297,13 +250,6 @@ class StoryConfig:
             "18+": "Adults (college students and general public)"
         }
     }
-
-    @classmethod
-    def get_target_age_description(cls, key: str, lang: str = "id") -> str:
-        if not key: return ""
-        lang = lang.lower().strip()
-        if lang not in ["id", "en"]: lang = "id"
-        return cls.TARGET_AGE_GROUPS[lang].get(key.strip(), key)
 
     # Available emotional tones (Nada emosional yang tersedia)
     EMOTIONAL_TONES = {
@@ -326,13 +272,6 @@ class StoryConfig:
             "petualangan": "Full of spirit and courage"
         }
     }
-
-    @classmethod
-    def get_emotional_tone_description(cls, key: str, lang: str = "id") -> str:
-        if not key: return ""
-        lang = lang.lower().strip()
-        if lang not in ["id", "en"]: lang = "id"
-        return cls.EMOTIONAL_TONES[lang].get(key.lower().strip(), key)
 
 
 # =============================================================================

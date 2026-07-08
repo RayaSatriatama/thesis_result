@@ -1,11 +1,4 @@
 import streamlit as st
-import sys
-import os
-
-# Add scripts/sampling to path globally so that cached functions can resolve sampling_expert
-_sampling_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scripts", "sampling"))
-if _sampling_path not in sys.path:
-    sys.path.insert(0, _sampling_path)
 
 from tabs.architecture import render_architecture_tab
 from tabs.coherence import render_coherence_tab

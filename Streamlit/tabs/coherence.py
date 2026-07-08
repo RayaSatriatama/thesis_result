@@ -527,7 +527,7 @@ def _latest_file(directory: Path, pattern: str) -> Path | None:
 
 def _load_latest_traces_df() -> pd.DataFrame:
     root = repo_root()
-    traces_dir = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Traces"
+    traces_dir = root / "Eval_Data" / "Traces"
     p = _latest_file(traces_dir, "*.csv")
     if p is None:
         return pd.DataFrame()
@@ -633,7 +633,7 @@ def _pick_samples_from_eval_data(df_all: pd.DataFrame, *, lang_key: str) -> pd.D
 
 def _load_latest_geval_dim_scores(trace_ids: set[str]) -> pd.DataFrame:
     root = repo_root()
-    obs_dir = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Observations"
+    obs_dir = root / "Eval_Data" / "Observations"
     p = _latest_file(obs_dir, "*.jsonl")
     if p is None or not trace_ids:
         return pd.DataFrame()
@@ -1138,7 +1138,7 @@ def render_coherence_tab() -> None:
 
     if current_df is not None:
         root = repo_root()
-        obs_dir = root / "Eval_Data" / "Agentic-AI-LightRAG" / "Observations"
+        obs_dir = root / "Eval_Data" / "Observations"
         obs_rows = _load_coherence_from_observations(obs_dir)
 
         if obs_rows:

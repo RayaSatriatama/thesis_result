@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-06-23T19:37:10.108273",
+  "prompt_used": "Describe the business based on the structured data provided.",
+  "results": [
+    {
+      "model": "qwen3.5:9b",
+      "architecture": "multi_agent",
+      "elapsed_sec": 1475.3484266819996,
+      "status": "error",
+      "error": "Could not parse response content as the length limit was reached"
+    },
+    {
+      "model": "qwen3.5:9b",
+      "architecture": "debate",
+      "elapsed_sec": 1200.14973628,
+      "status": "error",
+      "error": ""
+    },
+    {
+      "model": "qwen3.5:9b",
+      "architecture": "storm",
+      "elapsed_sec": 1200.368239712001,
+      "status": "error",
+      "error": ""
+    }
+  ]
+}

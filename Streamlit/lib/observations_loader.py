@@ -122,7 +122,7 @@ def load_baseline_geval() -> Optional[pd.DataFrame]:
 
 def load_current_geval() -> Optional[pd.DataFrame]:
     """Load G-Eval per-trace scores from Eval_Data/Observations/."""
-    obs_dir = repo_root() / "Eval_Data" / "Agentic-AI-LightRAG" / "Observations"
+    obs_dir = repo_root() / "Eval_Data" / "Observations"
     csv_path = _find_observations_csv(obs_dir)
     if csv_path is None:
         return None
@@ -207,7 +207,7 @@ def load_baseline_claim_counts() -> Optional[pd.DataFrame]:
 
 
 def load_current_claim_counts() -> Optional[pd.DataFrame]:
-    obs_dir = repo_root() / "Eval_Data" / "Agentic-AI-LightRAG" / "Observations"
+    obs_dir = repo_root() / "Eval_Data" / "Observations"
     p = _find_latest_observations_jsonl(obs_dir)
     if p is None:
         return None
