@@ -25,6 +25,7 @@ Understanding how the system is built.
  Practical instructions for developers and authors.
 
 - [Quickstart](guides/quickstart.md): Get up and running with the project quickly.
+- [Configuration Guide](configuration.md): Complete list of environment variables (`.env`), LLM providers, and agent parameters.
 - [Authoring Workflow](guides/authoring_workflow.md): How to create story-based learning content.
 - [Story-Based Learning Playbook (from agent implementation)](story_based_learning_playbook.md): Narrative, thesis-friendly mapping from code-level rubric + decision loops → story-based learning workflow.
 - [Narrative Styles](guides/narrative_styles.md): Reference for available story and narrative styles.
