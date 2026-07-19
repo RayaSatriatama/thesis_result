@@ -1,165 +1,112 @@
 # Sampel Cerita (Sistem Bahasa Indonesia - FAITHFULNESS - 5 Cerita)
 
-## Sampel 1: SKOR TINGGI (Best Cases)
-### Judul: Misteri GPT-4: Petualangan Pengetahuan Leo dan Mia
+## Sampel 1: SKOR TINGGI
+### Judul: Mengingat Highland Park: Angka di Balik Tragedi
 
 **Prompt / Input:**
-> "Buat cerita edukatif yang membantu siswa memahami: When was GPT-4 released and what are some of its capabilities?"
+> "Buat cerita edukatif yang membantu siswa memahami: How many people were killed and injured in the mass shooting during the Independence Day parade in Highland Park, Illinois?"
 
 **Cerita:**
 
-Di tengah hiruk pikuk pameran sains yang penuh kilau dan suara, Leo, si penggemar sejarah yang selalu sistematis, menarik lengan Mia, sahabatnya yang antusias dengan teknologi.
+Pagi 4 Juli 2022 seharusnya dipenuhi dengan kegembiraan di Highland Park, Illinois. Parade Hari Kemerdekaan adalah tradisi yang dirayakan, di mana keluarga dan teman berkumpul untuk menyaksikan arak-arakan penuh warna. Namun, sukacita itu hancur dalam sekejap, digantikan oleh suara tembakan yang memekakkan telinga dan kepanikan yang tak terlukiskan. Peristiwa penembakan massal itu meninggalkan luka mendalam yang masih terasa hingga kini.
 
-"Mia, dengar tidak?" bisik Leo, matanya berbinar penasaran. "Semua orang membicarakan 'GPT-4'. Apa itu, ya?"
+Sebuah pertanyaan sering muncul ketika kita merenungkan tragedi semacam ini: berapa banyak orang yang tewas dan terluka? Ini bukan sekadar angka, melainkan cerminan dari kehidupan yang hilang dan penderitaan yang tak terbayangkan. Memahami skala dampaknya adalah langkah pertama untuk menyadari betapa seriusnya kekerasan senjata api.
 
-Mia mengernyitkan dahi. "Entahlah, Leo. Aku pernah dengar sekilas, tapi informasinya terpencar-pencar. Ada yang bilang itu kecerdasan buatan baru, tapi kapan rilisnya dan apa saja yang bisa dilakukan, aku belum paham betul."
+Dalam serangan brutal itu, **tujuh orang meninggal dunia**. Mereka adalah individu-individu dengan kisah, impian, dan orang-orang terkasih yang ditinggalkan. Selain korban jiwa, **sekitar 48 orang lainnya terluka**, baik akibat tembakan langsung maupun dampak kepanikan massal yang terjadi. Mereka yang selamat membawa bekas luka fisik dan emosional yang mungkin akan mereka rasakan seumur hidup. Angka-angka ini bukan hanya statistik; mereka mewakili hilangnya nyawa yang tak dapat diganti dan trauma yang melumpuhkan.
 
-Mereka berdua memutuskan untuk menyelidiki. Mereka menyusuri lorong-lorong pameran, menghentikan beberapa pengunjung dan peserta pameran, namun jawaban yang mereka dapatkan hanya semakin membingungkan. Ada yang menyebutkan tanggal rilis yang berbeda, ada pula yang menjelaskan kemampuannya dengan istilah-istilah teknis yang rumit.
-
-"Ini seperti mencari harta karun tanpa peta yang lengkap," keluh Mia, sedikit frustrasi.
-
-"Betul," sahut Leo, mengangguk. "Kita butuh seseorang yang bisa menyusun kepingan teka-teki ini."
-
-Saat mereka hampir menyerah, pandangan mereka tertuju pada sebuah stan yang lebih tenang di sudut ruangan. Di sana, seorang wanita dewasa dengan senyum ramah sedang berbicara kepada sekelompok kecil pengunjung. Itu adalah Profesor Elara, seorang ahli AI yang terkenal dengan kemampuannya menjelaskan hal-hal rumit dengan cara yang sederhana.
-
-Dengan ragu-ragu, Leo dan Mia mendekat. "Permisi, Profesor Elara," kata Mia memberanikan diri. "Kami ingin tahu tentang GPT-4, tapi kami kesulitan menemukan informasi yang jelas."
-
-Profesor Elara tersenyum hangat. "Ah, GPT-4! Topik yang menarik. Kalian berdua beruntung. Mari saya jelaskan."
-
-Profesor Elara menjelaskan dengan jelas dan ringkas. "GPT-4 secara resmi dirilis oleh OpenAI pada tanggal **14 Maret 2023**." Ia kemudian mengaktifkan simulasi interaktif di layarnya yang besar, memperlihatkan visual yang menarik.
-
-"Bayangkan dia sebagai asisten super pintar," lanjut Profesor Elara. "Pertama, dia punya **pemahaman bahasa yang jauh lebih baik** dan **kemampuan penalaran yang canggih**. Dia bisa mengerti pertanyaan kalian dengan lebih mendalam dan memberikan jawaban yang lebih tepat. Kedua, **kreativitasnya** luar biasa! Dia bisa membantu kalian menulis cerita, membuat lagu, atau bahkan menghasilkan ide-ide baru yang tak terpikirkan. Dan yang paling keren, GPT-4 tidak hanya bisa menerima teks, tapi juga **input multimodal**, seperti gambar!" Ia menunjukkan contoh di mana GPT-4 bisa 'melihat' gambar bahan makanan dan menyarankan resep masakan.
-
-"Jadi, kalau aku kasih gambar bahan-bahan di kulkas, dia bisa kasih ide mau masak apa?" tanya Mia, matanya membulat takjub.
-
-"Tepat sekali!" Profesor Elara mengangguk. "Dia bisa menjadi alat yang sangat membantu dalam berbagai bidang, dari pendidikan, seni, hingga membantu kalian membuat proyek kreatif seperti membuat *game controller* dari kardus. Dia terus belajar dari setiap percakapan, jadi dia akan semakin pintar seiring waktu."
-
-Leo dan Mia saling pandang, wajah mereka cerah karena pencerahan. Mereka kini mengerti kapan GPT-4 dirilis dan betapa menakjubkan kemampuannya. Rasa ingin tahu mereka telah membawa mereka pada pengetahuan baru yang membuka cakrawala. Mereka bersemangat untuk terus belajar tentang AI dan berjanji untuk berbagi cerita tentang asisten super pintar ini dengan teman-teman mereka, menginspirasi mereka untuk menjelajahi dunia teknologi yang terus berkembang.
+Dampak dari penembakan ini meluas jauh melampaui korban langsung. Keluarga-keluarga yang hancur, teman-teman yang berduka, dan seluruh komunitas Highland Park harus menghadapi kenyataan pahit ini. Tragedi ini menjadi pengingat yang menyakitkan akan kerapuhan hidup dan pentingnya untuk terus berupaya menciptakan dunia yang lebih aman. Di balik setiap angka ada wajah, ada cerita, ada kehidupan yang berubah selamanya. Mengingat mereka adalah cara kita menghormati ingatan para korban dan menegaskan bahwa kekerasan semacam ini tidak boleh dilupakan.
 
 ---
 
-## Sampel 2: SKOR TINGGI (Best Cases)
-### Judul: Misteri Brigade Tank Tatsin: Penemuan Alex
+## Sampel 2: SKOR TINGGI
+### Judul: Pemberontakan Singkat Wagner: Konflik Internal yang Mengguncang Rusia
 
 **Prompt / Input:**
-> "Buat cerita edukatif yang membantu siswa memahami: When was the 5th Separate Guards Tatsin Red Banner Order of Suvorov Tank Brigade formed, and what is its military unit number?"
+> "Buat cerita edukatif yang membantu siswa memahami: What was the cause of the rebellion staged by the Wagner Group in 2023, and how did it end?"
 
 **Cerita:**
 
-Alex menghela napas panjang, menatap layar komputernya yang menampilkan berbagai hasil pencarian. Proyek sejarah militernya kali ini terasa seperti misi yang mustahil. Dia harus menemukan informasi spesifik tentang '5th Separate Guards Tatsin Red Banner Order of Suvorov Tank Brigade', namun buku-buku sejarah umum di rumahnya hanya menyajikan gambaran besar tentang Perang Dunia II, tanpa detail yang ia butuhkan.
+Pada tahun 2023, dunia dikejutkan oleh pemberontakan singkat yang dilancarkan oleh Kelompok Wagner, sebuah kontraktor militer swasta Rusia yang dipimpin oleh Yevgeny Prigozhin. Kelompok Wagner telah menjadi pemain kunci dalam konflik di Ukraina, beroperasi di samping militer Rusia dan membantu merebut kota-kota penting seperti Bakhmut. Namun, di balik keberhasilan militer mereka, ketegangan antara Prigozhin dan Kementerian Pertahanan Rusia terus memanas, terutama terkait pasokan, strategi, dan pengakuan atas peran Wagner.
 
-"Ini pasti ada di suatu tempat," gumam Alex, matanya beralih dari buku tebal tentang tank perang ke layar laptop. Dia tahu tank pertama, Mark I, digunakan pada tahun 1916 dalam Pertempuran Somme. Dia tahu Little Willie adalah prototipe pertamanya di tahun 1915. Dia bahkan tahu bahwa tank adalah kendaraan lapis baja yang diciptakan untuk membantu tentara melewati parit dan melindungi mereka dari tembakan senapan mesin. Tapi semua itu tidak menjawab pertanyaannya tentang brigade tank khusus ini.
+Puncak ketegangan terjadi ketika Prigozhin secara terbuka menuduh Kementerian Pertahanan Rusia melakukan serangan terhadap pasukannya. Tuduhan ini, ditambah dengan kritik tajamnya terhadap Menteri Pertahanan Sergei Shoigu dan panglima militer Valery Gerasimov atas dugaan kegagalan operasional dan korupsi, memicu deklarasi 'pawai keadilan' oleh Wagner menuju Moskow. Prigozhin menyerukan pemberontakan bersenjata, bertujuan untuk menggulingkan kepemimpinan militer Rusia yang ia anggap bertanggung jawab atas kekalahan dan ketidakadilan terhadap pasukannya.
 
-Dengan tekad baru, Alex memutuskan untuk pergi ke perpustakaan kota. Bangunan tua itu, dengan rak-rak buku yang menjulang tinggi hingga langit-langit, selalu menjadi gudang harta karun bagi para pencari ilmu. Di sana, ia bertemu dengan Bu Retno, pustakawan berambut perak yang terkenal dengan pengetahuannya yang luas, terutama tentang sejarah.
+Perjalanan konvoi Wagner menuju Moskow berlangsung cepat, menimbulkan kekhawatiran global akan potensi konflik bersenjata skala besar di Rusia. Pasukan Wagner berhasil merebut fasilitas militer di kota Rostov dan Voronezh dengan sedikit perlawanan. Presiden Rusia, Vladimir Putin, menanggapi dengan keras, menyebut tindakan Wagner sebagai pengkhianatan dan bersumpah akan menindak tegas para pemberontak. Keamanan di Moskow diperketat, menciptakan suasana tegang di seluruh negeri.
 
-"Ada yang bisa saya bantu, Alex? Sepertinya kamu sedang mencari sesuatu yang sangat spesifik," sapa Bu Retno ramah, melihat ekspresi frustrasi di wajah Alex.
-
-Alex menjelaskan kesulitannya. "Saya harus menemukan kapan '5th Separate Guards Tatsin Red Banner Order of Suvorov Tank Brigade' dibentuk dan berapa nomor unit militernya, Bu. Tapi saya tidak bisa menemukan informasi ini di buku-buku biasa." Dia menunjukkan judul brigade itu di ponselnya.
-
-Bu Retno tersenyum. "Ah, informasi militer yang sangat spesifik memang jarang ada di buku-buku umum, Alex. Itu biasanya tersimpan dalam arsip khusus, seringkali digital sekarang. Ini membutuhkan sedikit ketekunan dan cara pencarian yang berbeda." Tantangan dalam suara Bu Retno justru menyulut semangat Alex. "Mau coba mencarinya di database arsip militer digital?" tawarnya.
-
-Alex mengangguk antusias. Bu Retno membimbingnya ke salah satu komputer di bagian arsip. Dengan sabar, ia menunjukkan bagaimana menggunakan kata kunci yang tepat, memfilter hasil, dan menelusuri database yang luas. Bersama-sama, mereka menjelajahi berbagai entri, melewati berbagai nama unit dan tanggal, hingga akhirnya, sebuah petunjuk muncul.
-
-Jantung Alex berdebar ketika ia melihat sebuah entri yang cocok. Di sana, tertera dengan jelas: **5th Separate Guards Tatsin Red Banner Order of Suvorov Tank Brigade**. Dan di bawahnya, rincian yang selama ini ia cari-cari. Matanya membesar saat membaca informasinya.
-
-"Bu Retno, saya menemukannya!" seru Alex penuh kegembiraan. "Brigade ini dibentuk pada **16 Februari 1943**, dan nomor unit militernya adalah **Unit Militer Lapangan 41655 (Polevoy Pochty 41655)**!"
-
-Bu Retno tersenyum bangga. "Bagus sekali, Alex! Kamu lihat, dengan ketekunan dan tahu di mana mencari, informasi sekecil apa pun bisa ditemukan." Dia menjelaskan bahwa tank, sejak pertama kali digunakan pada tahun 1916, telah berevolusi dan menjadi bagian integral dari banyak unit militer, masing-masing dengan sejarah dan penomorannya sendiri.
-
-Alex menyelesaikan proyeknya dengan informasi yang akurat dan lengkap. Dia tidak hanya mendapatkan nilai bagus, tetapi juga belajar pelajaran berharga tentang penelitian. Dia menyadari bahwa mencari informasi sejarah membutuhkan lebih dari sekadar membuka buku; itu membutuhkan ketekunan, kesabaran, dan kadang kala, bantuan dari seorang ahli seperti Bu Retno. Penemuan itu juga membuka matanya pada betapa banyaknya cerita dan detail yang tersembunyi di balik peristiwa-peristiwa besar dalam sejarah militer.
-
+Namun, sebelum konvoi Wagner mencapai ibu kota, situasi mereda berkat negosiasi yang dipimpin oleh Presiden Belarusia, Alexander Lukashenko. Kesepakatan dicapai: Wagner menghentikan gerakannya, Prigozhin dan sebagian pasukannya diizinkan pindah ke Belarusia, dan kasus pidana terhadap mereka dibatalkan. Peristiwa ini menunjukkan bagaimana konflik internal, bahkan di antara kekuatan yang bersekutu, dapat memiliki dampak signifikan pada stabilitas geopolitik dan memerlukan penanganan diplomatik yang cepat untuk mencegah eskalasi. Masa depan Wagner dan implikasinya terhadap lanskap geopolitik global tetap menjadi pertanyaan yang belum terjawab.
 
 ---
 
-## Sampel 3: SKOR SEDANG (Average Cases)
-### Judul: Misteri Liga Super Wanita Turki
+## Sampel 3: SKOR SEDANG
+### Judul: Misteri Menara Jam Chimnabai
 
 **Prompt / Input:**
-> "Buat cerita edukatif yang membantu siswa memahami: How many teams participate in the Turkish Women's Football Super League, and what is the format of the league?"
+> "Buat cerita edukatif yang membantu siswa memahami: When was the Chimnabai Clock Tower completed, and who was it named after?"
 
 **Cerita:**
 
-Di klub sepak bola sekolah yang riuh, Arya dan Bela, dua sahabat berusia 12 tahun, sedang asyik berdiskusi. Mata mereka berbinar-binar setelah menonton cuplikan pertandingan Liga Super Wanita Turki. Bola melesat cepat, operan akurat, dan gol-gol indah membuat mereka terpukau.
+Arya dan Lina, dua sahabat karib yang selalu siap untuk petualangan baru, sedang menjelajahi sudut-sudut perpustakaan kota. Mata Arya yang pemberani dan ingin tahu langsung tertuju pada sebuah buku tua dengan sampul usang. Di sampulnya, terpampang gambar megah Menara Jam Chimnabai.
 
-"Keren banget, ya, pertandingan tadi!" seru Bela, bersemangat. "Aku jadi penasaran, berapa banyak tim sih yang bermain di Liga Super Wanita Turki itu? Dan gimana sistem liganya?" tanyanya, keningnya berkerut.
+"Lina, lihat ini!" seru Arya, menunjuk gambar menara jam yang menjulang tinggi. "Indah sekali! Aku ingin tahu lebih banyak tentangnya."
 
-Arya yang penuh rasa ingin tahu, tapi sedikit pemalu, mengangguk setuju. "Iya, aku juga bingung. Tadi aku sempat cari di internet, tapi informasinya beda-beda. Ada yang bilang 14 tim, ada yang bilang 16. Jadi yang bener yang mana, ya?" Ia menghela napas, merasa sedikit frustrasi. Informasi yang mereka butuhkan seolah bersembunyi.
+Lina, yang cerdas dan gemar membaca, mendekat. "Wah, Menara Jam Chimnabai. Aku pernah dengar namanya, tapi tidak pernah tahu ceritanya." Mereka berdua membawa buku itu ke meja Pak Budi, penjaga perpustakaan yang bijaksana dan punya banyak cerita.
 
-Mereka berdua saling pandang, lalu ide cemerlang muncul di kepala Bela. "Aha! Bagaimana kalau kita tanya Kak Rina? Dia kan kapten tim kita dan penggemar berat sepak bola. Pasti dia tahu banyak!" ajaknya, matanya berbinar.
+"Pak Budi, kami menemukan buku ini tentang Menara Jam Chimnabai," kata Lina. "Apakah Bapak tahu lebih banyak tentang menara ini?"
 
-Arya langsung setuju. Kak Rina, yang berusia 16 tahun, memang dikenal bijaksana dan sangat berpengetahuan tentang sepak bola. Mereka bergegas mencari Kak Rina yang sedang merapikan perlengkapan di sudut lapangan.
+Pak Budi tersenyum. "Tentu saja. Menara Jam Chimnabai adalah salah satu bangunan bersejarah yang penting di kota kita. Namun, detail pembangunannya sering terlupakan." Ia menatap Arya dan Lina dengan mata berbinar. "Apakah kalian berani menerima tantangan? Aku ingin kalian mencari tahu dua hal penting: kapan menara itu selesai dibangun dan untuk siapa nama 'Chimnabai' diberikan?"
 
-"Kak Rina!" panggil Bela riang.
+Arya dan Lina saling pandang, semangat petualangan mereka langsung berkobar. "Siap, Pak Budi!" jawab mereka serentak.
 
-Kak Rina menoleh sambil tersenyum. "Ada apa, adik-adik?" tanyanya lembut.
+Pak Budi kemudian mengeluarkan sebuah peta kuno dan beberapa foto lama. "Ini mungkin bisa jadi petunjuk awal kalian," katanya. "Bayangkan kalian adalah penjelajah waktu!"
 
-"Kak, kami mau tanya tentang Liga Super Wanita Turki," kata Arya memulai, sedikit gugup. "Berapa banyak tim yang bermain dan bagaimana format liganya, Kak? Kami cari di internet tapi bingung." 
+Arya dan Lina duduk di salah satu meja perpustakaan, membayangkan diri mereka melakukan perjalanan ke masa lalu. Mereka mengikuti petunjuk di peta kuno, seolah-olah berjalan di jalanan kota kuno. Dalam imajinasi mereka, mereka tiba di kaki Menara Jam Chimnabai. Bangunan itu masih baru, dengan para pekerja yang baru saja menyelesaikan sentuhan akhir.
 
-Kak Rina tersenyum. "Oh, kalian penasaran dengan Liga Super Wanita Turki, ya? Bagus sekali!" Ia pun mengeluarkan tabletnya. "Dengar baik-baik, ya. Liga Super Sepak Bola Wanita Turki itu saat ini diikuti oleh **16 tim**." 
+Lina, yang teliti, memperhatikan sesuatu di dasar menara. "Arya, lihat! Ada prasasti di sana!" Arya mendekat, dan dengan hati-hati, mereka membaca tulisan yang terukir di batu.
 
-Arya dan Bela saling pandang, terkejut dengan jumlah tim yang ternyata cukup banyak.
+Prasasti itu berbunyi: "Menara ini selesai dibangun pada tahun 1896, didedikasikan untuk mengenang Maharani Chimnabai I, istri Maharaja Sayajirao Gaekwad III, yang wafat dalam usia muda. Sebuah simbol cinta dan pengabdian."
 
-"Nah, ke-16 tim ini tidak langsung bertanding semuanya satu sama lain," lanjut Kak Rina sambil menggeser layar tabletnya untuk menunjukkan visual tabel liga. "Mereka dibagi menjadi dua grup, yaitu **Grup A dan Grup B**. Masing-masing grup berisi **8 tim**."
+Arya dan Lina terkejut. "Jadi, menara ini dinamai untuk seorang Maharani!" seru Arya.
 
-"Oh, begitu!" seru Bela, mulai paham.
+Mereka juga menemukan catatan lain yang menjelaskan bahwa menara itu adalah bentuk penghormatan atas dedikasi Maharani Chimnabai I selama hidupnya. Seolah-olah mereka telah menyaksikan sendiri sejarah itu terungkap.
 
-"Betul," Kak Rina mengangguk. "Setiap tim di dalam grupnya akan bertanding melawan tim lain dalam format dua putaran, yaitu pertandingan kandang dan tandang." Ia lalu menunjukkan bagan playoff di tabletnya. "Setelah semua pertandingan grup selesai, tim teratas dari masing-masing grup, yaitu juara Grup A dan juara Grup B, akan melaju ke babak playoff. Babak playoff ini terdiri dari semifinal dan final untuk memperebutkan gelar juara Liga Super Wanita Turki!"
+Dengan temuan berharga itu, Arya dan Lina "kembali" ke masa kini. Mereka segera menghampiri Pak Budi, wajah mereka berseri-seri.
 
-Arya dan Bela mendengarkan dengan saksama, mata mereka terpaku pada tablet Kak Rina. Visual yang ditunjukkan sangat membantu mereka memahami sistem yang rumit itu. Mereka sekarang memiliki gambaran yang jelas tentang bagaimana liga itu berjalan, dari pembagian grup hingga babak final yang mendebarkan.
+"Pak Budi, kami berhasil!" kata Lina penuh semangat. "Menara Jam Chimnabai selesai dibangun pada tahun 1896! Dan dinamai untuk menghormati Maharani Chimnabai I, istri Maharaja Sayajirao Gaekwad III, yang meninggal muda. Itu adalah tanda cinta dan penghormatan!"
 
-"Wah, Kak Rina hebat banget! Penjelasannya jelas sekali!" puji Arya, kini tidak lagi pemalu.
-
-Bela menambahkan, "Iya, makasih banyak, Kak! Sekarang kami jadi lebih paham dan nggak bingung lagi." Mereka merasa sangat senang. Penjelasan Kak Rina membuat mereka lebih termotivasi untuk mengikuti perkembangan liga tersebut. Mereka bahkan berencana untuk membuat proyek presentasi tentang sepak bola wanita di Turki untuk klub mereka, berbagi pengetahuan baru ini dengan teman-teman lain. Senyum lebar terpancar di wajah mereka, semangat mereka untuk sepak bola wanita semakin membara.
+Pak Budi tersenyum bangga. "Luar biasa! Kalian telah menemukan potongan sejarah yang penting. Kalian telah menunjukkan pentingnya rasa ingin tahu, semangat belajar sejarah, dan menghargai warisan budaya kita." Arya dan Lina berjanji akan menceritakan kisah ini kepada semua teman mereka, agar tidak ada lagi yang melupakan sejarah Menara Jam Chimnabai.
 
 ---
 
-## Sampel 4: SKOR RENDAH (Worst Cases)
-### Judul: Misteri Makam Alexander Stewart
+## Sampel 4: SKOR RENDAH
+### Judul: Misteri Perilisan 'Gaucho Americano'
 
 **Prompt / Input:**
-> "Buat cerita edukatif yang membantu siswa memahami: Who is buried in the Tomb of Alexander Stewart, and what is the condition of the tomb?"
+> "Buat cerita edukatif yang membantu siswa memahami: When and where did Gaucho Americano have its world premiere, and when was it commercially released in Chilean theaters?"
 
 **Cerita:**
 
-“Arya, lihat ini!” seru Luna, jari telunjuknya menunjuk ke sebuah baris tulisan buram di buku sejarah tua yang mereka pinjam dari perpustakaan sekolah. Buku itu berbau apek, khas buku-buku yang sudah lama menghuni rak. “’Makam Alexander Stewart’. Kira-kira siapa dia?”
+Di sebuah perpustakaan sekolah yang tenang, rak-rak buku menjulang tinggi seperti gunung ilmu. Di sana, Dino, seorang siswa berusia dua belas tahun dengan kacamata bertengger di hidungnya, sedang membolak-balik halaman buku tebal. Ia memiliki tugas sejarah film, dan matanya terpaku pada sebuah judul lama: 'Gaucho Americano'.
 
-Arya, 12 tahun, yang biasanya sedikit ceroboh tapi selalu antusias, mendekat dengan rasa ingin tahu. “Alexander Stewart? Aku belum pernah dengar namanya. Pasti orang penting, kalau sampai ada makamnya.”
+"Hmm, 'Gaucho Americano'," gumam Dino pada dirinya sendiri. Rasa ingin tahu menggebu dalam benaknya. "Kapan dan di mana film ini pertama kali ditayangkan? Dan kapan masyarakat Chili bisa menontonnya di bioskop?" Pertanyaan-pertanyaan itu berputar-putar di kepalanya.
 
-Mereka sedang mengerjakan proyek sejarah tentang tokoh-tokoh Skotlandia, dan catatan kecil itu tiba-tiba memicu petualangan tak terduga. Rasa penasaran mereka membuncah. Siapa Alexander Stewart ini? Di mana makamnya? Seharusnya mudah dicari, pikir mereka.
+Dino mulai mencari. Ia mengambil buku-buku tentang sejarah sinema, ensiklopedia film, bahkan mencoba mencari di komputer perpustakaan. Namun, ia segera menemui jalan buntu. Sumber-sumber awal yang ia temukan hanya memberikan tanggal rilis yang umum atau tidak lengkap. Beberapa menyebutkan 'film bertema Gaucho', tetapi tidak ada yang secara spesifik membahas 'Gaucho Americano' seperti yang ia harapkan. Ia menemukan informasi tentang *The Americano* (1955) yang dirilis pada 19 Januari 1955, di New York City, atau *The Gaucho* (1927) yang tayang 21 November 1927, bahkan film animasi *The Gallopin' Gaucho* (1928) yang dirilis 30 Desember 1928. Namun, itu semua bukan 'Gaucho Americano'. Frustrasi mulai merayapi Dino.
 
-Namun, pencarian awal mereka di internet dan buku-buku lain justru menimbulkan lebih banyak kebingungan. Nama ‘Alexander Stewart’ ternyata sangat umum di Skotlandia. Ada beberapa Alexander Stewart yang tercatat dalam sejarah, dari bangsawan hingga ksatria. Informasi yang mereka temukan seringkali kontradiktif, legenda bercampur dengan fakta. Luna, yang cerdas dan teliti, mulai frustrasi. “Ini seperti mencari jarum dalam tumpukan jerami, Arya! Mana yang benar?”
+Dengan bahu terkulai, Dino memutuskan untuk mencari bantuan. Ia melangkah menuju meja sirkulasi, tempat Ibu Shanti, pustakawan yang bijaksana dan selalu sabar, duduk. Ibu Shanti terkenal karena pengetahuannya yang luas dan kemampuannya menemukan informasi yang paling sulit sekalipun.
 
-Arya, dengan semangat petualangnya, tersenyum. “Justru itu serunya, Luna! Ini seperti teka-teki kuno!”
+"Ibu Shanti," kata Dino, sedikit ragu. "Saya mencari tahu tentang film 'Gaucho Americano', tapi saya tidak bisa menemukan kapan dan di mana *world premiere*-nya, atau kapan rilis komersialnya di Chili." 
 
-Mereka memutuskan untuk meminta bantuan Pak Budi, pustakawan sekolah berusia 60 tahun yang bijaksana. Pak Budi mendengarkan cerita mereka dengan sabar, mengangguk-angguk. “Alexander Stewart, ya? Memang nama yang populer. Tapi ada satu yang paling menonjol, terutama jika bicara soal makam bersejarah.” Pak Budi mengeluarkan beberapa buku tebal dan peta-peta lama. “Coba kalian cari tentang ‘Wolf of Badenoch’.”
+Ibu Shanti tersenyum hangat. "Ah, 'Gaucho Americano', ya? Itu memang sedikit rumit jika tidak tahu persis cara mencarinya." Ia bangkit dari kursinya dan membimbing Dino ke salah satu komputer di bagian arsip digital perpustakaan. "Terkadang, informasi spesifik seperti itu memerlukan pencarian yang lebih mendalam, Nak. Kita tidak hanya mencari judul, tapi juga detail perilisannya."
 
-“Wolf of Badenoch?” Arya dan Luna mengerutkan kening bersamaan.
+Bersama-sama, mereka mulai melakukan pencarian. Ibu Shanti menunjukkan cara menggunakan kata kunci yang lebih spesifik, seperti "Gaucho Americano world premiere" dan "Gaucho Americano commercial release Chile". Mereka menyaring hasil, sedikit demi sedikit, sampai akhirnya—bingo!
 
-Pak Budi tersenyum tipis. “Julukan itu diberikan kepada Alexander Stewart, Earl of Buchan. Dia adalah salah satu putra Raja Robert II dari Skotlandia. Dia dikenal karena reputasinya yang keras dan terkadang brutal, termasuk membakar Katedral Elgin pada tahun 1390.”
+Mata Dino membelalak saat Ibu Shanti mengklik sebuah artikel arsip. Di sana, tertulis dengan jelas, "*World premiere* "Gaucho Americano" terjadi pada **23 April 1993 di FilmFest DC di Washington D.C., Amerika Serikat.**" Kemudian, di paragraf berikutnya, "Sedangkan perilisan komersial di bioskop Chili baru terjadi beberapa bulan kemudian, pada **2 September 1993.**"
 
-Informasi itu membuat Arya dan Luna semakin tertarik. Kebakaran katedral? Ini terdengar lebih seperti cerita detektif daripada proyek sejarah biasa.
+Dino merasa sangat senang dan lega. "Wah, Ibu Shanti! Terima kasih banyak! Saya tidak akan pernah menemukannya sendiri." Ia kini memahami bahwa *premiere* sebuah film bisa terjadi di satu negara, sementara perilisan komersialnya di negara lain, bahkan di negara asalnya, bisa terjadi di tanggal yang berbeda. 
 
-Dengan petunjuk dari Pak Budi, mereka menemukan artikel tentang seorang arkeolog, Dr. Fiona Campbell, yang ahli dalam sejarah Skotlandia. Mereka memberanikan diri mengirim email kepadanya.
-
-Beberapa hari kemudian, Dr. Fiona membalas. Ia sangat senang dengan semangat mereka. “Benar sekali,” tulisnya, “Alexander Stewart, alias ‘Wolf of Badenoch’, dimakamkan di Katedral Elgin, Skotlandia. Makamnya adalah salah satu yang paling menarik di sana.”
-
-Lewat video call, Dr. Fiona menjelaskan lebih lanjut. “Makamnya adalah makam batu yang dihiasi dengan patung dirinya dalam baju zirah. Katedral Elgin sendiri, yang sebagian besar kini menjadi reruntuhan, dijuluki ‘Lentera Utara’ karena keindahannya di masa lalu. Makam Alexander Stewart terletak di bagian tengah katedral.”
-
-“Bagaimana kondisi makamnya, Dr. Fiona?” tanya Luna, matanya berbinar.
-
-“Makamnya telah bertahan selama berabad-abad, meskipun katedral itu sendiri mengalami banyak kerusakan, termasuk kebakaran yang disebabkan oleh Alexander Stewart sendiri!” Dr. Fiona tertawa kecil. “Makamnya telah melalui restorasi beberapa kali. Kalian bisa melihat ukiran detail pada patung di atasnya, meskipun beberapa bagian sudah tidak utuh lagi. Itu adalah peninggalan penting yang menceritakan banyak hal tentang kehidupan bangsawan Skotlandia di Abad Pertengahan, dan juga tentang sejarah katedral yang kaya.”
-
-Arya dan Luna merasa seolah mereka baru saja memecahkan misteri besar. Mereka sudah tidak sabar untuk menyelesaikan proyek mereka.
-
-Di hari presentasi, Arya dan Luna memukau teman-teman sekelas dan guru mereka. Mereka tidak hanya menjelaskan siapa Alexander Stewart, ‘Wolf of Badenoch’, dan di mana makamnya, tetapi juga menunjukkan gambar-gambar Katedral Elgin yang megah namun telah renta. Mereka berbicara tentang kondisi makam batu itu, bagaimana ia bertahan dari waktu ke waktu, dan pentingnya melestarikan situs-situs sejarah.
-
-“Dari proyek ini,” kata Luna di akhir presentasinya, “kami belajar bahwa sejarah itu bukan hanya deretan tanggal dan nama. Sejarah itu penuh dengan misteri yang menunggu untuk dipecahkan. Dan setiap peninggalan, sekecil apa pun, punya cerita yang layak kita dengarkan.”
-
-Arya menambahkan, “Dan kadang, orang yang paling ‘jahat’ dalam sejarah pun meninggalkan jejak yang mengajarkan kita banyak hal!” Mereka berdua tersenyum, bangga dengan petualangan arkeologi kecil mereka. Mereka telah menemukan lebih dari sekadar makam; mereka telah menemukan kegembiraan dalam mencari pengetahuan dan menghargai warisan masa lalu.
+Dengan informasi yang akurat di tangannya, Dino kembali ke mejanya, siap menyelesaikan tugasnya. Ia tidak hanya mendapatkan jawaban yang dicari, tetapi juga belajar pelajaran penting tentang ketelitian dan pentingnya menggunakan sumber yang kredibel dan spesifik dalam mencari informasi sejarah. Perpustakaan, dengan segala sumber daya dan bantuan Ibu Shanti, benar-benar menjadi tempat petualangan yang tak terduga.
 
 ---
 
-## Sampel 5: SKOR RENDAH (Worst Cases)
+## Sampel 5: SKOR RENDAH
 ### Judul: Misteri Jalur Kereta Tua
 
 **Prompt / Input:**

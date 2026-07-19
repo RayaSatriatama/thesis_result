@@ -41,7 +41,7 @@ CLAIM_COLS = [
     "fables_claims_evaluated",
 ]
 
-EXTENDED_METRICS = CORE_METRICS + ["educational_score"] + GEVAL_SUBDIMS + CLAIM_COLS
+EXTENDED_METRICS = CORE_METRICS + ["educational_score", "revision_count"] + GEVAL_SUBDIMS + CLAIM_COLS
 
 METRIC_DISPLAY = {
     "fables_faithfulness": "FABLES",
@@ -55,6 +55,7 @@ METRIC_DISPLAY = {
     "educational_score": "Educational Score",
     "fables_claims_total": "Total Claims (RAGAS)",
     "fables_claims_evaluated": "Evaluated Claims (FABLES)",
+    "revision_count": "revisi",
 }
 
 
@@ -166,18 +167,22 @@ def _compute_pairwise_stats(
     return results
 
 
-def _interpret_correlation(r: float) -> str:
-    """Interpret correlation coefficient magnitude."""
-    abs_r = abs(r)
+def _interpret_correlation(rho: float, p_val: float) -> str:
+    """Interpret correlation coefficient magnitude and significance."""
+    abs_r = abs(rho)
+    if abs_r < 0.2: strength = "sangat lemah"
+    elif abs_r < 0.4: strength = "lemah"
+    elif abs_r < 0.6: strength = "sedang"
+    elif abs_r < 0.8: strength = "kuat"
+    else: strength = "sangat kuat"
+    
+    sig = "tidak signifikan" if p_val >= 0.05 else "signifikan"
+    
     if abs_r < 0.1:
-        return "negligible"
-    if abs_r < 0.3:
-        return "weak"
-    if abs_r < 0.5:
-        return "moderate"
-    if abs_r < 0.7:
-        return "strong"
-    return "very strong"
+        return f"{strength.capitalize()}, {sig}"
+        
+    dir_str = "Positif" if rho > 0 else "Negatif"
+    return f"{dir_str} {strength}, {sig}"
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +216,7 @@ def _heatmap_chart(corr_matrix: pd.DataFrame, title: str) -> alt.Chart:
         tooltip=[
             alt.Tooltip("row_label:N", title="Baris"),
             alt.Tooltip("col_label:N", title="Kolom"),
-            alt.Tooltip("r:Q", title="Korelasi", format=".4f"),
+            alt.Tooltip("r:Q", title="Korelasi", format=".3f"),
         ],
     )
 
@@ -257,8 +262,8 @@ def _scatter_chart(
             ),
             tooltip=[
                 alt.Tooltip(f"{color_col}:N", title="Sistem"),
-                alt.Tooltip(f"{x_col}:Q", title=x_label, format=".4f"),
-                alt.Tooltip(f"{y_col}:Q", title=y_label, format=".4f"),
+                alt.Tooltip(f"{x_col}:Q", title=x_label, format=".3f"),
+                alt.Tooltip(f"{y_col}:Q", title=y_label, format=".3f"),
             ],
         )
     )
@@ -353,28 +358,109 @@ def _render_scatter_section(df: pd.DataFrame, metrics: list[str]) -> None:
             )
 
 
-def _render_stats_table_section(df: pd.DataFrame, metrics: list[str]) -> None:
-    """Section C: Statistical correlation table."""
-    st.subheader("C. Tabel Korelasi Statistik")
-    st.caption(
-        "Pearson r mengukur korelasi linear; Spearman rho mengukur korelasi monoton (non-parametrik). "
-        "p-value < 0.05 menunjukkan korelasi signifikan secara statistik."
-    )
-
-    pairwise = _compute_pairwise_stats(df, metrics)
-    if not pairwise:
-        st.info("Tidak cukup data untuk menghitung korelasi statistik.")
+def _render_main_agentic_section(agentic_df: pd.DataFrame, metrics: list[str]) -> None:
+    st.subheader("C. Analisis Utama (Agentic AI, n=100)")
+    st.caption("Analisis korelasi utama dilakukan terhadap 100 trace sistem agentic AI karena variabel jumlah revisi hanya terdapat pada sistem tersebut. Data kedua sistem tidak langsung digabungkan dalam analisis utama karena perbedaan karakteristik sistem dan rata-rata skor dapat memengaruhi pola korelasi yang diperoleh (Simpson's paradox).")
+    
+    if agentic_df is None or agentic_df.empty:
+        st.info("Data Agentic AI tidak tersedia.")
         return
-
-    stats_df = pd.DataFrame(pairwise)
-
-    display_df = stats_df.drop(columns=["_col_a", "_col_b"]).copy()
-    display_df["Pearson p"] = display_df["Pearson p"].map(lambda x: f"{x:.4f}")
-    display_df["Spearman p"] = display_df["Spearman p"].map(lambda x: f"{x:.4f}")
-    display_df["Interpretasi"] = stats_df["Spearman rho"].map(_interpret_correlation)
-
+        
+    core_avail = [m for m in CORE_METRICS if m in metrics]
+    
+    import ast
+    def clean_rc(x):
+        try:
+            if isinstance(x, str) and x.startswith("["):
+                return float(ast.literal_eval(x)[0])
+            return float(x)
+        except:
+            return None
+            
+    df_clean = agentic_df.copy()
+    if "revision_count" in df_clean.columns:
+        df_clean["revision_count"] = df_clean["revision_count"].apply(clean_rc)
+        
+    rows = []
+    
+    # 1. Faithfulness and Coherence pairwise
+    pairwise = _compute_pairwise_stats(df_clean, core_avail)
+    for p in pairwise:
+        rows.append({
+            "Pasangan metrik": f"{p['Metrik A']} vs {p['Metrik B']}",
+            "ρ ≈ 0": f"{p['Spearman rho']:.3f}",
+            "p-value": "< 0.001" if p['Spearman p'] < 0.001 else f"{p['Spearman p']:.3f}",
+            "Interpretasi": _interpret_correlation(p['Spearman rho'], p['Spearman p']),
+            "_rho": p['Spearman rho']
+        })
+        
+    # 2. Revision count pairwise
+    if "revision_count" in df_clean.columns:
+        for m in core_avail:
+            valid = df_clean[["revision_count", m]].dropna()
+            if len(valid) < 5: continue
+            rho, p_val = scipy_stats.spearmanr(valid["revision_count"], valid[m])
+            rows.append({
+                "Pasangan metrik": f"{METRIC_DISPLAY.get(m, m)} vs revisi",
+                "ρ ≈ 0": f"{rho:.3f}",
+                "p-value": "< 0.001" if p_val < 0.001 else f"{p_val:.3f}",
+                "Interpretasi": _interpret_correlation(rho, p_val),
+                "_rho": float(rho)
+            })
+            
+    if not rows:
+        st.info("Tidak cukup data untuk menghitung korelasi statistik Agentic AI.")
+        return
+        
+    res_df = pd.DataFrame(rows)
+    display_df = res_df.drop(columns=["_rho"])
+    
     def _row_style(row: pd.Series):
-        rho = float(stats_df.iloc[row.name]["Spearman rho"])
+        rho = res_df.iloc[row.name]["_rho"]
+        if abs(rho) >= 0.5:
+            return ["background-color: rgba(34, 197, 94, 0.1)"] * len(row)
+        if abs(rho) >= 0.3:
+            return ["background-color: rgba(234, 179, 8, 0.1)"] * len(row)
+        return ["background-color: rgba(239, 68, 68, 0.08)"] * len(row)
+
+    st.dataframe(
+        display_df.style.apply(_row_style, axis=1),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.markdown("> **Simpulan Singkat:**\n> Korelasi pada 100 trace agentic AI menjelaskan hubungan antarmetrik dan dinamika revisi di dalam arsitektur multiagen. *Faithfulness* dan koherensi tidak saling bergantung secara signifikan. Jumlah revisi berkolerasi negatif dengan skor akhir, menunjukkan bahwa sistem melakukan lebih banyak intervensi revisi untuk cerita yang pada dasarnya sudah kompleks/problematik sejak awal.")
+
+
+def _render_additional_baseline_section(baseline_df: pd.DataFrame, metrics: list[str]) -> None:
+    st.subheader("D. Analisis Tambahan (Baseline, n=100)")
+    st.caption("Korelasi antara faithfulness dan koherensi naratif dianalisis secara terpisah pada 100 trace baseline sebagai analisis pembanding untuk melihat apakah pola hubungan metrik berbeda antara sistem generasi alur tunggal dan sistem agentic AI.")
+    
+    if baseline_df is None or baseline_df.empty:
+        st.info("Data Baseline tidak tersedia.")
+        return
+        
+    core_avail = [m for m in CORE_METRICS if m in metrics]
+    pairwise = _compute_pairwise_stats(baseline_df, core_avail)
+    
+    if not pairwise:
+        st.info("Tidak cukup data untuk menghitung korelasi statistik Baseline.")
+        return
+        
+    rows = []
+    for p in pairwise:
+        rows.append({
+            "Pasangan metrik": f"{p['Metrik A']} vs {p['Metrik B']}",
+            "ρ ≈ 0": f"{p['Spearman rho']:.3f}",
+            "p-value": "< 0.001" if p['Spearman p'] < 0.001 else f"{p['Spearman p']:.3f}",
+            "Interpretasi": _interpret_correlation(p['Spearman rho'], p['Spearman p']),
+            "_rho": p['Spearman rho']
+        })
+        
+    res_df = pd.DataFrame(rows)
+    display_df = res_df.drop(columns=["_rho"])
+    
+    def _row_style(row: pd.Series):
+        rho = res_df.iloc[row.name]["_rho"]
         if abs(rho) >= 0.5:
             return ["background-color: rgba(34, 197, 94, 0.1)"] * len(row)
         if abs(rho) >= 0.3:
@@ -388,13 +474,14 @@ def _render_stats_table_section(df: pd.DataFrame, metrics: list[str]) -> None:
     )
 
 
+
 def _render_per_system_section(
     baseline_df: pd.DataFrame | None,
     current_df: pd.DataFrame | None,
     metrics: list[str],
 ) -> None:
-    """Section D: Compare correlation patterns between Baseline and Agentic AI."""
-    st.subheader("D. Perbandingan Pola Korelasi per Sistem")
+    """Section I: Compare correlation patterns between Baseline and Agentic AI."""
+    st.subheader("E. Perbandingan Pola Korelasi per Sistem")
     st.caption(
         "Apakah hubungan antar metrik berubah antara sistem Baseline dan Agentic AI? "
         "Perbedaan pola korelasi mengindikasikan bahwa agentic loop mengubah dinamika antar metrik."
@@ -432,8 +519,8 @@ def _render_per_system_section(
                 "Sistem": sys_name,
                 "n": len(valid),
                 "Spearman rho": round(float(rho), 4),
-                "p-value": f"{float(p_val):.4f}",
-                "Interpretasi": _interpret_correlation(rho),
+                "p-value": f"{float(p_val):.3f}",
+                "Interpretasi": _interpret_correlation(rho, p_val),
             })
 
     if not rows:
@@ -445,8 +532,8 @@ def _render_per_system_section(
 
 
 def _render_geval_subdim_section(df: pd.DataFrame, metrics: list[str]) -> None:
-    """Section E: How G-Eval sub-dimensions correlate with faithfulness metrics."""
-    st.subheader("E. Korelasi Sub-Dimensi G-Eval dengan Metrik Faithfulness")
+    """Section I: How G-Eval sub-dimensions correlate with faithfulness metrics."""
+    st.subheader("F. Korelasi Sub-Dimensi G-Eval dengan Metrik Faithfulness")
     st.caption(
         "Masing-masing sub-dimensi G-Eval (Fluency, Consistency, Clarity, Conciseness, Repetitiveness) "
         "mungkin memiliki hubungan yang berbeda dengan skor faithfulness FABLES dan RAGAS."
@@ -471,8 +558,8 @@ def _render_geval_subdim_section(df: pd.DataFrame, metrics: list[str]) -> None:
                 "G-Eval Dimension": METRIC_DISPLAY.get(gc, gc),
                 "n": len(valid),
                 "Spearman rho": round(float(rho), 4),
-                "p-value": f"{float(p_val):.4f}",
-                "Interpretasi": _interpret_correlation(rho),
+                "p-value": f"{float(p_val):.3f}",
+                "Interpretasi": _interpret_correlation(rho, p_val),
             })
 
     if not rows:
@@ -516,7 +603,7 @@ def _render_geval_subdim_section(df: pd.DataFrame, metrics: list[str]) -> None:
             tooltip=[
                 "Faithfulness Metric:N",
                 "G-Eval Dimension:N",
-                alt.Tooltip("Spearman rho:Q", format=".4f"),
+                alt.Tooltip("Spearman rho:Q", format=".3f"),
             ],
         )
         .properties(
@@ -528,8 +615,8 @@ def _render_geval_subdim_section(df: pd.DataFrame, metrics: list[str]) -> None:
 
 
 def _render_educational_section(df: pd.DataFrame, metrics: list[str]) -> None:
-    """Section F: Educational Score correlations with all other metrics."""
-    st.subheader("F. Korelasi Educational Score dengan Metrik Lainnya")
+    """Section I: Educational Score correlations with all other metrics."""
+    st.subheader("G. Korelasi Educational Score dengan Metrik Lainnya")
     st.caption(
         "Educational Score (1-5) mengukur kualitas pedagogis cerita. "
         "Bagaimana hubungannya dengan faithfulness (FABLES/RAGAS) dan koherensi (G-Eval)?"
@@ -560,10 +647,10 @@ def _render_educational_section(df: pd.DataFrame, metrics: list[str]) -> None:
             "Metrik": METRIC_DISPLAY.get(tc, tc),
             "n": len(valid),
             "Spearman rho": round(float(rho), 4),
-            "Spearman p": f"{float(p_val):.4f}",
+            "Spearman p": f"{float(p_val):.3f}",
             "Pearson r": round(float(r_pe), 4),
-            "Pearson p": f"{float(p_pe):.4f}",
-            "Interpretasi": _interpret_correlation(rho),
+            "Pearson p": f"{float(p_pe):.3f}",
+            "Interpretasi": _interpret_correlation(rho, p_val),
             "_rho": float(rho),
         })
 
@@ -612,7 +699,7 @@ def _render_educational_section(df: pd.DataFrame, metrics: list[str]) -> None:
                 alt.value("#22c55e"),
                 alt.value("#ef4444"),
             ),
-            tooltip=["Metrik:N", alt.Tooltip("Spearman rho:Q", format=".4f")],
+            tooltip=["Metrik:N", alt.Tooltip("Spearman rho:Q", format=".3f")],
         )
         .properties(title="Korelasi Educational Score vs Metrik Lainnya", height=250)
     )
@@ -627,8 +714,8 @@ def _render_educational_section(df: pd.DataFrame, metrics: list[str]) -> None:
 
 
 def _render_claims_correlation_section(df: pd.DataFrame, metrics: list[str]) -> None:
-    """Section G: How claim counts correlate with G-Eval and Educational Score."""
-    st.subheader("G. Korelasi Jumlah Klaim dengan Kualitas Cerita")
+    """Section I: How claim counts correlate with G-Eval and Educational Score."""
+    st.subheader("H. Korelasi Jumlah Klaim dengan Kualitas Cerita")
     st.caption(
         "Apakah cerita yang menghasilkan lebih banyak fakta/klaim (lebih detail) cenderung "
         "memiliki skor G-Eval atau Educational Score yang berbeda? "
@@ -659,8 +746,8 @@ def _render_claims_correlation_section(df: pd.DataFrame, metrics: list[str]) -> 
                 "Target": METRIC_DISPLAY.get(tc, tc),
                 "n": len(valid),
                 "Spearman rho": round(float(rho), 4),
-                "p-value": f"{float(p_val):.4f}",
-                "Interpretasi": _interpret_correlation(rho),
+                "p-value": f"{float(p_val):.3f}",
+                "Interpretasi": _interpret_correlation(rho, p_val),
                 "_rho": float(rho),
             })
 
@@ -699,8 +786,8 @@ def _render_claims_correlation_section(df: pd.DataFrame, metrics: list[str]) -> 
 
 
 def _render_interpretation_section(df: pd.DataFrame, metrics: list[str]) -> None:
-    """Section H: Auto-generated interpretation of findings."""
-    st.subheader("H. Interpretasi Temuan")
+    """Section I: Auto-generated interpretation of findings."""
+    st.subheader("I. Interpretasi Temuan")
 
     core_avail = [m for m in CORE_METRICS if m in metrics]
     pairwise = _compute_pairwise_stats(df, core_avail)
@@ -712,7 +799,7 @@ def _render_interpretation_section(df: pd.DataFrame, metrics: list[str]) -> None
     for row in pairwise:
         rho = row["Spearman rho"]
         p = row["Spearman p"]
-        interp = _interpret_correlation(rho)
+        interp = _interpret_correlation(rho, p)
         direction = "positif" if rho > 0 else "negatif"
         sig = "signifikan (p < 0.05)" if p < 0.05 else "tidak signifikan (p >= 0.05)"
 
@@ -726,7 +813,7 @@ def _render_interpretation_section(df: pd.DataFrame, metrics: list[str]) -> None
 
         st.markdown(
             f"**{marker} {row['Metrik A']} vs {row['Metrik B']}**: "
-            f"Korelasi {direction} {interp} (rho = {rho:.4f}, {sig}). "
+            f"Korelasi {direction} {interp} (rho = {rho:.3f}, {sig}). "
         )
 
     st.divider()
@@ -811,7 +898,10 @@ def render_correlation_tab() -> None:
     _render_scatter_section(combined, metrics)
     st.divider()
 
-    _render_stats_table_section(combined, metrics)
+    _render_main_agentic_section(current_lang, metrics)
+    st.divider()
+
+    _render_additional_baseline_section(baseline_lang, metrics)
     st.divider()
 
     _render_per_system_section(baseline_lang, current_lang, metrics)

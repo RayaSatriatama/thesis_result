@@ -499,21 +499,21 @@ def render_architecture_tab() -> None:
         # Table 1: RAGAS
         df_ragas = get_group_df("RAGAS", "ragas_standard_faithfulness")
         st.dataframe(
-            df_ragas.style.apply(highlight_max).format({c: "{:.4f}" for c in df_ragas.columns if c != "Arsitektur"}),
+            df_ragas.style.apply(highlight_max).format({c: "{:.3f}" for c in df_ragas.columns if c != "Arsitektur"}),
             use_container_width=True, hide_index=True
         )
 
         # Table 2: FABLES
         df_fables = get_group_df("FABLES", "fables_faithfulness")
         st.dataframe(
-            df_fables.style.apply(highlight_max).format({c: "{:.4f}" for c in df_fables.columns if c != "Arsitektur"}),
+            df_fables.style.apply(highlight_max).format({c: "{:.3f}" for c in df_fables.columns if c != "Arsitektur"}),
             use_container_width=True, hide_index=True
         )
 
         # Table 3: G-Eval
         df_geval = get_group_df("GEVAL", "geval_coherence_normalized")
         st.dataframe(
-            df_geval.style.apply(highlight_max).format({c: "{:.4f}" for c in df_geval.columns if c != "Arsitektur"}),
+            df_geval.style.apply(highlight_max).format({c: "{:.3f}" for c in df_geval.columns if c != "Arsitektur"}),
             use_container_width=True, hide_index=True
         )
 

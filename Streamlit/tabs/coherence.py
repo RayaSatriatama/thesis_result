@@ -33,6 +33,12 @@ from lib.analysis_utils import (
     compute_significance,
     render_significance_table,
 )
+from lib.faithfulness_metrics import (
+    filter_all_traces_by_language,
+    filter_tops_by_language,
+    load_all_traces_df,
+    load_ten_story_traces_df,
+)
 from lib.paths import repo_root
 
 
@@ -573,7 +579,7 @@ def _pick_samples_from_eval_data(df_all: pd.DataFrame, *, lang_key: str) -> pd.D
     Sampling berasal dari Eval_Data dengan aturan (per bahasa):
     - max 2
     - min 2
-    - median 1 (jarak 3D ke median sistem)
+    - median 1 (jarak sentral ke median sistem)
 
     Hierarki metrik (Coherence):
     - utama: geval_coherence_normalized
@@ -613,16 +619,16 @@ def _pick_samples_from_eval_data(df_all: pd.DataFrame, *, lang_key: str) -> pd.D
     s_min["kategori"] = "MIN (Worst Cases)"
     df_valid = df_valid.drop(s_min.index)
 
-    # 3) median 1 (3D distance to medians of remaining pool)
+    # 3) median 1 (distance to medians of remaining pool)
     median_coh = float(df_valid[metrik_utama].median())
     median_ragas = float(df_valid[metrik_ragas].median())
     median_fables = float(df_valid[metrik_fables].median())
-    df_valid["jarak_sentral_3d"] = (
+    df_valid["jarak_sentral"] = (
         (df_valid[metrik_utama] - median_coh) ** 2
         + (df_valid[metrik_ragas] - median_ragas) ** 2
         + (df_valid[metrik_fables] - median_fables) ** 2
     ) ** 0.5
-    s_med = df_valid.sort_values("jarak_sentral_3d", ascending=True).head(1).copy()
+    s_med = df_valid.sort_values("jarak_sentral", ascending=True).head(1).copy()
     s_med["kategori"] = "MEDIAN (Average Case)"
 
     out = pd.concat([s_max, s_med, s_min], ignore_index=True)
@@ -734,7 +740,7 @@ def _geval_bar_chart(df: pd.DataFrame, col: str, title: str) -> alt.Chart:
                 scale=alt.Scale(scheme="blues", domain=[0, 1]),
                 legend=None,
             ),
-            tooltip=["story:N", alt.Tooltip("score:Q", format=".4f")],
+            tooltip=["story:N", alt.Tooltip("score:Q", format=".3f")],
         )
         .properties(title=title, height=320)
     )
@@ -767,10 +773,178 @@ def _delta_bar_chart(delta_df: pd.DataFrame, metric: str, label: str) -> alt.Cha
                 scale=alt.Scale(domain=["Baseline", "Current"], range=["#64748b", "#3b82f6"]),
             ),
             xOffset="Source:N",
-            tooltip=["Story:N", "Source:N", alt.Tooltip("Score:Q", format=".4f")],
+            tooltip=["Story:N", "Source:N", alt.Tooltip("Score:Q", format=".3f")],
         )
         .properties(height=300)
     )
+
+
+def _coherence_dist_chart_notebook_style(
+    df: pd.DataFrame,
+    col: str,
+    title: str,
+    sample_df: pd.DataFrame | None = None,
+    sample_label: str = "Sampling",
+    bar_color: str = "#805AD5",
+    kde_color: str = "#4A148C",
+) -> alt.Chart:
+    """Notebook-style distribution chart for coherence."""
+    if df.empty or col not in df.columns:
+        return alt.Chart().mark_text(text="Data tidak tersedia").properties(height=300)
+
+    sub = df[[col]].copy()
+    sub[col] = pd.to_numeric(sub[col], errors="coerce")
+    sub = sub.dropna()
+
+    if sub.empty:
+        return alt.Chart().mark_text(text="Data tidak tersedia").properties(height=300)
+
+    if "normalized" in col or "score" not in col and "geval" not in col:
+        extent_lo, extent_hi = 0.0, 1.0 if "normalized" in col else 5.0
+        if "geval_avg_raw" in col or "educational_score" in col:
+            extent_lo, extent_hi = 1.0, 5.0
+    else:
+        extent_lo, extent_hi = 0.0, 1.0
+
+    span = extent_hi - extent_lo
+
+    if span <= 1.0:
+        bin_config = alt.Bin(step=0.1, extent=[0.0, 1.0])
+        x_axis = alt.Axis(titleFontSize=11, labelFontSize=10, labelAngle=-45, grid=False, values=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+    else:
+        bin_config = alt.Bin(step=0.5, extent=[extent_lo, extent_hi])
+        x_axis = alt.Axis(titleFontSize=11, labelFontSize=10, labelAngle=-45, grid=False, values=[1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
+
+    y_axis = alt.Axis(titleFontSize=11, labelFontSize=10, grid=True, gridColor="#f0f0f0", tickCount=5)
+
+    histogram = (
+        alt.Chart(sub)
+        .mark_bar(opacity=0.85, color=bar_color)
+        .encode(
+            x=alt.X(f"{col}:Q", bin=bin_config, axis=x_axis, title="Skor Koherensi", scale=alt.Scale(domain=[extent_lo, extent_hi])),
+            y=alt.Y("count()", title="Frekuensi", axis=y_axis),
+            tooltip=[
+                alt.Tooltip(f"{col}:Q", bin=bin_config, title="Skor", format=".3f"),
+                alt.Tooltip("count()", title="Jumlah"),
+            ],
+        )
+    )
+
+    layers: list[alt.Chart] = [histogram]
+
+    if len(sub) >= 2:
+        # Gunakan bandwidth yang lebih kecil (tajam) agar sesuai dengan histogram
+        bw = max(span * 0.08, 0.02) if span > 0 else 0.05
+        kde = (
+            alt.Chart(sub)
+            .transform_density(
+                col,
+                as_=[col, "density"],
+                groupby=[],
+                extent=[extent_lo, extent_hi],
+                bandwidth=bw,
+            )
+            .mark_line(color=kde_color, strokeWidth=2.5)
+            .encode(
+                x=alt.X(f"{col}:Q", axis=x_axis),
+                y=alt.Y("density:Q", axis=None),
+                tooltip=[
+                    alt.Tooltip(field=col, type="quantitative", title="Skor", format=".3f"),
+                    alt.Tooltip("density:Q", title="Densitas", format=".3f"),
+                ],
+            )
+        )
+        layers.append(kde)
+
+    s = sub[col]
+    marker_label_min, marker_label_mean, marker_label_max = "Min", "Mean", "Max"
+    
+    ref_s = s
+    if sample_df is not None and not sample_df.empty and col in sample_df.columns:
+        s_samp = pd.to_numeric(sample_df[col], errors="coerce").dropna()
+        if not s_samp.empty:
+            ref_s = s_samp
+
+    markers = pd.DataFrame([
+        {"kind": marker_label_min, "value": float(ref_s.min())},
+        {"kind": marker_label_mean, "value": float(ref_s.mean())},
+        {"kind": marker_label_max, "value": float(ref_s.max())},
+    ])
+    
+    color_scale = alt.Scale(
+        domain=[marker_label_min, marker_label_mean, marker_label_max],
+        range=["#1565C0", "#C62828", "#2E7D32"],
+    )
+    rules = (
+        alt.Chart(markers)
+        .mark_rule(strokeWidth=2.5, strokeDash=[7, 4])
+        .encode(
+            x=alt.X("value:Q", axis=x_axis),
+            color=alt.Color(
+                "kind:N", scale=color_scale,
+                legend=alt.Legend(title=None, labelFontSize=10, symbolStrokeWidth=2, orient="top", direction="horizontal", symbolType="stroke", symbolDash=[7, 4]),
+            ),
+            tooltip=[alt.Tooltip("kind:N", title="Marker"), alt.Tooltip("value:Q", title="Nilai", format=".3f")],
+        )
+    )
+    layers.append(rules)
+
+    chart_title = alt.TitleParams(
+        text=title, 
+        fontSize=13, 
+        fontWeight="bold", 
+        color="#212121", 
+        subtitleFontSize=10, 
+        subtitleColor="#555555",
+        limit=500,
+    )
+    return alt.layer(*layers).resolve_scale(y="independent").properties(height=300, title=chart_title)
+
+
+def _describe_coherence_scores_combined(df_all: pd.DataFrame, df_en: pd.DataFrame, df_id: pd.DataFrame) -> pd.DataFrame | None:
+    cols = {
+        "geval_coherence_normalized": "Koherensi Naratif",
+        "educational_score": "Skor Edukatif",
+    }
+    
+    rows = []
+    
+    def _add_stats(sub_df, pop_label, c_name, base_label):
+        if sub_df is None or sub_df.empty or c_name not in sub_df.columns:
+            return
+        s = pd.to_numeric(sub_df[c_name], errors="coerce").dropna()
+        if s.empty:
+            return
+        rows.append({
+            "Metrik": f"{base_label} ({pop_label})",
+            "N": int(s.count()),
+            "Mean": s.mean(),
+            "Median": s.median(),
+            "Std Dev": s.std(),
+            "Min": s.min(),
+            "Q1": s.quantile(0.25),
+            "Q3": s.quantile(0.75),
+            "Max": s.max(),
+        })
+
+    for c, label in cols.items():
+        _add_stats(df_en, "EN", c, label)
+        _add_stats(df_id, "ID", c, label)
+        _add_stats(df_all, "Keseluruhan", c, label)
+        
+    return pd.DataFrame(rows) if rows else None
+
+
+def _format_stats_table(df: pd.DataFrame) -> "pd.io.formats.style.Styler":
+    return df.style.format({
+        "Mean": "{:.3f}",
+        "Median": "{:.3f}",
+        "Std Dev": "{:.3f}",
+        "Min": "{:.3f}",
+        "Q1": "{:.3f}",
+        "Q3": "{:.3f}",
+        "Max": "{:.3f}"
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -873,8 +1047,8 @@ def render_coherence_tab() -> None:
                 weighted_f1 = float(report.loc[report["Kelas"] == "Weighted Avg", "F1-Score"].iloc[0]) if not report.empty else 0.0
 
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Macro F1-Score (1-5)", f"{macro_f1:.4f}", "Keseluruhan")
-                c2.metric("Weighted F1-Score (1-5)", f"{weighted_f1:.4f}", "Keseluruhan")
+                c1.metric("Macro F1-Score (1-5)", f"{macro_f1:.3f}", "Keseluruhan")
+                c2.metric("Weighted F1-Score (1-5)", f"{weighted_f1:.3f}", "Keseluruhan")
                 c3.metric("Accuracy (Exact Match)", f"{acc * 100:.2f}%", "Kesamaan label")
                 c4.metric("Total Label Dievaluasi", str(n_labels), "5 dimensi x cerita")
 
@@ -1044,6 +1218,97 @@ def render_coherence_tab() -> None:
                         st.warning("Ada judul di file sampling coherence yang tidak terpilih oleh sampling Eval_Data.")
                         st.code("\n".join(extra), language="text")
 
+    st.markdown("---")
+
+    st.header("Statistik Skor Koherensi (Tingkat Jejak / Trace)")
+    st.caption(
+        "Distribusi mencakup **seluruh** trace pada CSV terbaru. "
+        "Setiap baris menampilkan 3 kolom bahasa: **Keseluruhan** (N=100), "
+        "**Bahasa Inggris** (N=50), dan **Bahasa Indonesia** (N=50). "
+        "Garis putus-putus vertikal menandai **min / mean / max** dari "
+        "subset sampling skripsi (10 jejak; 5 per bahasa). "
+        "Legenda Min, Mean, dan Max ditampilkan di dalam grafik pada sisi kiri atas."
+    )
+
+    all_df_raw: pd.DataFrame | None = None
+    try:
+        all_df_raw = load_all_traces_df()
+    except Exception:
+        all_df_raw = None
+
+    tops_df_raw: pd.DataFrame | None = None
+    try:
+        tops_df_raw = load_ten_story_traces_df()
+    except Exception:
+        tops_df_raw = None
+
+    if all_df_raw is not None and not all_df_raw.empty:
+        all_scores_all = filter_all_traces_by_language(all_df_raw, "all")
+        all_scores_en = filter_all_traces_by_language(all_df_raw, "en")
+        all_scores_id = filter_all_traces_by_language(all_df_raw, "id")
+
+        tops_all = filter_tops_by_language(tops_df_raw, "all") if tops_df_raw is not None else None
+        tops_en = filter_tops_by_language(tops_df_raw, "en") if tops_df_raw is not None else None
+        tops_id = filter_tops_by_language(tops_df_raw, "id") if tops_df_raw is not None else None
+
+        n_all = int(all_scores_all.shape[0]) if all_scores_all is not None else 0
+        n_en = int(all_scores_en.shape[0]) if all_scores_en is not None else 0
+        n_id = int(all_scores_id.shape[0]) if all_scores_id is not None else 0
+        n_tops = int(tops_all.shape[0]) if tops_all is not None else 0
+
+        st.caption(
+            f"Populasi: N={n_all} (Keseluruhan), N={n_en} (Inggris), N={n_id} (Indonesia). "
+            f"Subset sampling skripsi: n={n_tops} jejak."
+        )
+
+        stats_tbl = _describe_coherence_scores_combined(all_scores_all, all_scores_en, all_scores_id)
+        if stats_tbl is not None:
+            st.markdown(f"**Statistik Deskriptif (Keseluruhan & Per Bahasa)**")
+            st.dataframe(_format_stats_table(stats_tbl), use_container_width=True, hide_index=True)
+
+        CHART_METRICS = [
+            ("geval_coherence_normalized", "G-Eval Normalized (0-1)"),
+            ("educational_score", "Educational Score (1-5)"),
+        ]
+        LANG_COLS = [
+            ("Keseluruhan", all_scores_all, tops_all),
+            ("Bahasa Inggris", all_scores_en, tops_en),
+            ("Bahasa Indonesia", all_scores_id, tops_id),
+        ]
+
+        for metric_col, metric_label in CHART_METRICS:
+            st.markdown(f"**{metric_label}**")
+            cols_chart = st.columns(3)
+            
+            bar_col_val = "#FF9800"  # Lighter Orange for bars
+            kde_col_val = "#E65100"  # Darker Orange for KDE line
+
+            for idx, (lang_label, pop_df, samp_df) in enumerate(LANG_COLS):
+                n_pop = int(pop_df.shape[0]) if pop_df is not None and not pop_df.empty else 0
+                n_samp = int(samp_df.shape[0]) if samp_df is not None and not samp_df.empty else 0
+                chart_title = f"{metric_label} ({lang_label})"
+                samp_label = f"Sampling (n={n_samp})"
+                plot_df = pop_df if pop_df is not None and not pop_df.empty else pd.DataFrame()
+                with cols_chart[idx]:
+                    st.caption(f"N={n_pop}")
+                    if plot_df.empty or metric_col not in plot_df.columns:
+                        st.info("Data tidak tersedia.")
+                    else:
+                        st.altair_chart(
+                            _coherence_dist_chart_notebook_style(
+                                plot_df,
+                                metric_col,
+                                chart_title,
+                                sample_df=samp_df,
+                                sample_label=samp_label,
+                                bar_color=bar_col_val,
+                                kde_color=kde_col_val,
+                            ),
+                            use_container_width=True,
+                        )
+    else:
+        st.info("Tidak ada dataframe jejak untuk statistik skor (CSV trace atau sampling gagal).")
+
     st.divider()
 
     baseline_raw = load_baseline_df()
@@ -1078,8 +1343,8 @@ def render_coherence_tab() -> None:
         if "geval_avg_raw" in current_df.columns:
             series = current_df["geval_avg_raw"].dropna()
             col_a, col_b, col_c, col_d, col_e = st.columns(5)
-            col_a.metric("Mean (1-5)", f"{series.mean():.4f}")
-            col_b.metric("Std", f"{series.std():.4f}")
+            col_a.metric("Mean (1-5)", f"{series.mean():.3f}")
+            col_b.metric("Std", f"{series.std():.3f}")
             col_c.metric("Min", f"{series.min():.2f}")
             col_d.metric("Max", f"{series.max():.2f}")
             col_e.metric("N Traces", len(series))
@@ -1232,14 +1497,30 @@ def render_coherence_tab() -> None:
         f"n Baseline = {b_n}, n Agentic AI = {c_n} "
         f"({'filter: ' + lang_key.upper() if lang_key != 'all' else 'semua bahasa'})."
     )
+    from lib.analysis_utils import compute_combined_significance_coherence, render_combined_significance_coherence
+    
+    b_all_raw = add_language_col(load_baseline_df())
+    c_all_raw = add_language_col(load_current_df())
+    
+    b_en = b_all_raw[b_all_raw["language"] == "en"] if "language" in b_all_raw.columns else pd.DataFrame()
+    c_en = c_all_raw[c_all_raw["language"] == "en"] if "language" in c_all_raw.columns else pd.DataFrame()
+    b_id = b_all_raw[b_all_raw["language"] == "id"] if "language" in b_all_raw.columns else pd.DataFrame()
+    c_id = c_all_raw[c_all_raw["language"] == "id"] if "language" in c_all_raw.columns else pd.DataFrame()
+
     sig_rows = []
     for col_name, label, *_ in COHERENCE_METRICS:
-        if col_name not in baseline_df.columns or col_name not in current_df.columns:
+        if col_name not in b_all_raw.columns or col_name not in c_all_raw.columns:
             continue
-        result = compute_significance(baseline_df[col_name], current_df[col_name], label)
-        if result:
-            sig_rows.append(result)
-    render_significance_table(sig_rows)
+        # Use simpler base label for dimensions (e.g. "Conciseness" instead of "Conciseness (1-5)")
+        clean_label = label.split(" (")[0]
+        res = compute_combined_significance_coherence(
+            b_all_raw[col_name], c_all_raw[col_name],
+            b_en[col_name] if not b_en.empty else [], c_en[col_name] if not c_en.empty else [],
+            b_id[col_name] if not b_id.empty else [], c_id[col_name] if not c_id.empty else [],
+            col_name, clean_label
+        )
+        sig_rows.extend(res)
+    render_combined_significance_coherence(sig_rows)
 
     st.divider()
 
@@ -1260,7 +1541,7 @@ def render_coherence_tab() -> None:
         combined["Current Mean"] = pd.to_numeric(combined["Current Mean"], errors="coerce")
         combined["Baseline Mean"] = pd.to_numeric(combined["Baseline Mean"], errors="coerce")
         combined["Delta Mean"] = (combined["Current Mean"] - combined["Baseline Mean"]).round(4)
-        combined["Delta Mean"] = combined["Delta Mean"].apply(lambda x: f"{x:+.4f}" if pd.notna(x) else "N/A")
+        combined["Delta Mean"] = combined["Delta Mean"].apply(lambda x: f"{x:+.3f}" if pd.notna(x) else "N/A")
         st.dataframe(combined, use_container_width=True, hide_index=True)
 
 

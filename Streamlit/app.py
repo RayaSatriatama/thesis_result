@@ -6,6 +6,7 @@ from tabs.faithfulness import render_faithfulness_tab
 from tabs.correlation import render_correlation_tab
 from tabs.lightrag import render_lightrag_sidebar, render_lightrag_tab
 from tabs.wikieval import render_wikieval_tab
+from tabs.sampling import render_sampling_tab
 
 st.set_page_config(
     page_title="Evaluasi Agentic AI — Faithfulness, Koherensi & Arsitektur",
@@ -25,13 +26,14 @@ with st.sidebar:
 
 custom_root = custom_before.strip() or None
 
-tab_arch, tab_faith, tab_coh, tab_corr, tab_wiki, tab_lightrag = st.tabs([
+tab_arch, tab_faith, tab_coh, tab_corr, tab_wiki, tab_lightrag, tab_samp = st.tabs([
     "Arsitektur Agentic AI",
     "Faithfulness",
     "Coherence",
     "Korelasi Metrik",
     "WikiEval",
     "Analisis LightRAG",
+    "Expert Sampling",
 ])
 
 with tab_arch:
@@ -55,3 +57,6 @@ with tab_wiki:
 
 with tab_lightrag:
     render_lightrag_tab(baseline_root, custom_root)
+
+with tab_samp:
+    render_sampling_tab()

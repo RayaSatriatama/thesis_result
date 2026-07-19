@@ -151,7 +151,7 @@ def distribution_chart(
                 domain=["Baseline", "Agentic AI (Current)"],
                 range=["#64748b", "#3b82f6"],
             )),
-            tooltip=["Source:N", alt.Tooltip("Mean:Q", format=".4f", title="Mean")],
+            tooltip=["Source:N", alt.Tooltip("Mean:Q", format=".3f", title="Mean")],
         )
     )
     return (chart + mean_lines).resolve_scale(color="shared")
@@ -197,7 +197,7 @@ def boxplot_chart(
                 ),
                 legend=None,
             ),
-            tooltip=["Source:N", alt.Tooltip("Score:Q", format=".4f")],
+            tooltip=["Source:N", alt.Tooltip("Score:Q", format=".3f")],
         )
         .properties(title=f"Boxplot {metric_label}", height=240)
     )
@@ -247,11 +247,11 @@ def compute_significance(
     return {
         "Metrik": label,
         "Baseline n": int(len(bv)),
-        "Baseline Mean ± Std": f"{np.mean(bv):.4f} ± {np.std(bv):.4f}",
+        "Baseline Mean ± Std": f"{np.mean(bv):.3f} ± {np.std(bv):.3f}",
         "Current n": int(len(cv)),
-        "Current Mean ± Std": f"{np.mean(cv):.4f} ± {np.std(cv):.4f}",
-        "Delta": f"{delta:+.4f} ({delta_pct:+.1f}%)",
-        "p-value": f"{p_mw:.4f}",
+        "Current Mean ± Std": f"{np.mean(cv):.3f} ± {np.std(cv):.3f}",
+        "Delta": f"{delta:+.3f} ({delta_pct:+.1f}%)",
+        "p-value": f"{p_mw:.3f}",
         "Signifikansi": sig_label,
         "Cohen's d": f"{d:.3f} ({d_label})",
         "_p": float(p_mw),
@@ -302,3 +302,120 @@ def render_significance_table(sig_rows: list[dict]) -> None:
                 f"({row['Signifikansi']}). Delta mungkin disebabkan variasi sampling."
             )
         st.markdown(verdict)
+
+def compute_combined_significance_faithfulness(b_all, c_all, b_en, c_en, b_id, c_id, metric_col, base_label) -> list[dict]:
+    rows = []
+    def _add_sig(bv_series, cv_series, pop_label):
+        bv = pd.to_numeric(pd.Series(bv_series), errors="coerce").dropna().values
+        cv = pd.to_numeric(pd.Series(cv_series), errors="coerce").dropna().values
+        if len(bv) < 5 or len(cv) < 5: return
+        _, p_mw = scipy_stats.mannwhitneyu(cv, bv, alternative="greater")
+        pooled_std = float(np.sqrt((np.std(bv) ** 2 + np.std(cv) ** 2) / 2))
+        d = (float(np.mean(cv)) - float(np.mean(bv))) / pooled_std if pooled_std > 0 else 0.0
+        delta = float(np.mean(cv)) - float(np.mean(bv))
+        delta_pct = delta / float(np.mean(bv)) * 100 if float(np.mean(bv)) != 0 else 0.0
+        d_abs = abs(d)
+        if d_abs < 0.2: d_label = "Sangat kecil/dapat diabaikan"
+        elif d_abs < 0.5: d_label = "Kecil"
+        elif d_abs < 0.8: d_label = "Sedang"
+        elif d_abs < 1.2: d_label = "Besar"
+        else: d_label = "Sangat Besar"
+        
+        if p_mw < 0.05: sig_label = "Signifikan"
+        else: sig_label = "Tidak Signifikan"
+        
+        p_val_str = "< 0.001" if p_mw < 0.001 else f"{p_mw:.3f}"
+        
+        rows.append({
+            "Metrik Evaluasi": f"{base_label} ({pop_label})",
+            "Baseline Mean ± Std": f"{np.mean(bv):.3f} ± {np.std(bv):.3f}",
+            "Agentic AI Mean ± Std": f"{np.mean(cv):.3f} ± {np.std(cv):.3f}",
+            "Selisih Nilai (Delta)": f"{delta:+.3f} ({delta_pct:+.1f}%)",
+            "p-value": p_val_str,
+            "Ukuran Efek (Cohen's d)": f"{d:+.3f} ({d_label})",
+            "Keputusan statistik": sig_label,
+            "_p": float(p_mw)
+        })
+    _add_sig(b_en, c_en, "EN")
+    _add_sig(b_id, c_id, "ID")
+    _add_sig(b_all, c_all, "Total")
+    return rows
+
+def render_combined_significance_faithfulness(sig_rows: list[dict]) -> None:
+    if not sig_rows: return
+    sig_df = pd.DataFrame(sig_rows)
+    display_df = sig_df.drop(columns=["_p"])
+    def _row_style(row: pd.Series):
+        p = sig_df.at[row.name, "_p"]
+        if p < 0.001: return ["background-color: #dcfce7"] * len(row)
+        elif p < 0.05: return ["background-color: #fef9c3"] * len(row)
+        else: return ["background-color: #fee2e2"] * len(row)
+    st.dataframe(display_df.style.apply(_row_style, axis=1), use_container_width=True, hide_index=True)
+
+def compute_combined_significance_coherence(b_all, c_all, b_en, c_en, b_id, c_id, metric_col, base_label) -> list[dict]:
+    rows = []
+    def _add_sig(bv_series, cv_series, pop_label):
+        bv = pd.to_numeric(pd.Series(bv_series), errors="coerce").dropna().values
+        cv = pd.to_numeric(pd.Series(cv_series), errors="coerce").dropna().values
+        if len(bv) < 5 or len(cv) < 5: return
+        _, p_mw = scipy_stats.mannwhitneyu(cv, bv, alternative="greater")
+        pooled_std = float(np.sqrt((np.std(bv) ** 2 + np.std(cv) ** 2) / 2))
+        d = (float(np.mean(cv)) - float(np.mean(bv))) / pooled_std if pooled_std > 0 else 0.0
+        delta = float(np.mean(cv)) - float(np.mean(bv))
+        delta_pct = delta / float(np.mean(bv)) * 100 if float(np.mean(bv)) != 0 else 0.0
+        d_abs = abs(d)
+        if d_abs < 0.2: d_label = "Sangat kecil/dapat diabaikan"
+        elif d_abs < 0.5: d_label = "Kecil"
+        elif d_abs < 0.8: d_label = "Sedang"
+        elif d_abs < 1.2: d_label = "Besar"
+        else: d_label = "Sangat Besar"
+
+        if p_mw < 0.05: sig_label = "Signifikan"
+        else: sig_label = "Tidak Signifikan"
+
+        p_val_str = "< 0.001" if p_mw < 0.001 else f"{p_mw:.3f}"
+        rows.append({
+            "Dimensi Evaluasi": f"{base_label} ({pop_label})",
+            "Baseline Mean ± Std": f"{np.mean(bv):.3f} ± {np.std(bv):.3f}",
+            "Agentic AI Mean ± Std": f"{np.mean(cv):.3f} ± {np.std(cv):.3f}",
+            "Selisih Nilai (Delta)": f"{delta:+.3f} ({delta_pct:+.1f}%)",
+            "p-value": p_val_str,
+            "Ukuran Efek (Cohen's d)": f"{d:+.3f} ({d_label})",
+            "Keputusan statistik": sig_label,
+            "_p": float(p_mw)
+        })
+    _add_sig(b_en, c_en, "EN")
+    _add_sig(b_id, c_id, "ID")
+    _add_sig(b_all, c_all, "Total")
+    return rows
+
+def render_combined_significance_coherence(sig_rows: list[dict]) -> None:
+    if not sig_rows: return
+    sig_df = pd.DataFrame(sig_rows)
+    
+    def get_sort_lang(dim_str):
+        if "(ID)" in dim_str: return 0
+        elif "(EN)" in dim_str: return 1
+        return 2
+
+    def get_sort_dim(dim_str):
+        dim_lower = dim_str.lower()
+        if "conciseness" in dim_lower: return 0
+        if "repetitiveness" in dim_lower: return 1
+        if "consistency" in dim_lower: return 2
+        if "fluency" in dim_lower: return 3
+        if "clarity" in dim_lower: return 4
+        if "avg raw" in dim_lower: return 5
+        return 99
+
+    sig_df["_sort_lang"] = sig_df["Dimensi Evaluasi"].apply(get_sort_lang)
+    sig_df["_sort_dim"] = sig_df["Dimensi Evaluasi"].apply(get_sort_dim)
+    sig_df = sig_df.sort_values(by=["_sort_lang", "_sort_dim"]).reset_index(drop=True)
+    
+    display_df = sig_df.drop(columns=["_p", "_sort_lang", "_sort_dim"])
+    def _row_style(row: pd.Series):
+        p = sig_df.at[row.name, "_p"]
+        if p < 0.001: return ["background-color: #dcfce7"] * len(row)
+        elif p < 0.05: return ["background-color: #fef9c3"] * len(row)
+        else: return ["background-color: #fee2e2"] * len(row)
+    st.dataframe(display_df.style.apply(_row_style, axis=1), use_container_width=True, hide_index=True)

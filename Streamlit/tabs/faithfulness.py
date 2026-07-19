@@ -43,34 +43,38 @@ def _ensure_faithfulness_avg(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _describe_faithfulness_scores(df: pd.DataFrame) -> pd.DataFrame | None:
+def _describe_faithfulness_scores_combined(df_all: pd.DataFrame, df_en: pd.DataFrame, df_id: pd.DataFrame) -> pd.DataFrame | None:
     cols = {
-        "ragas_standard_faithfulness": "RAGAS Standard Faithfulness",
-        "fables_faithfulness": "FABLES Faithfulness",
+        "ragas_standard_faithfulness": "RAGAS",
+        "fables_faithfulness": "FABLES",
     }
+    
     rows = []
-    for c, label in cols.items():
-        if c not in df.columns:
-            continue
-        s = pd.to_numeric(df[c], errors="coerce").dropna()
+    
+    def _add_stats(sub_df, pop_label, c_name, base_label):
+        if sub_df is None or sub_df.empty or c_name not in sub_df.columns:
+            return
+        s = pd.to_numeric(sub_df[c_name], errors="coerce").dropna()
         if s.empty:
-            continue
-        rows.append(
-            {
-                "Metrik": label,
-                "n": int(s.count()),
-                "Mean": float(s.mean()),
-                "Median": float(s.median()),
-                "Std": float(s.std(ddof=0)) if s.count() > 1 else 0.0,
-                "Min": float(s.min()),
-                "Q25": float(s.quantile(0.25)),
-                "Q75": float(s.quantile(0.75)),
-                "Max": float(s.max()),
-            }
-        )
-    if not rows:
-        return None
-    return pd.DataFrame(rows)
+            return
+        rows.append({
+            "Metrik": f"{base_label} ({pop_label})",
+            "N": int(s.count()),
+            "Mean": s.mean(),
+            "Median": s.median(),
+            "Std Dev": s.std(),
+            "Min": s.min(),
+            "Q1": s.quantile(0.25),
+            "Q3": s.quantile(0.75),
+            "Max": s.max(),
+        })
+
+    for c, label in cols.items():
+        _add_stats(df_en, "EN", c, label)
+        _add_stats(df_id, "ID", c, label)
+        _add_stats(df_all, "Total", c, label)
+        
+    return pd.DataFrame(rows) if rows else None
 
 
 @st.cache_data(show_spinner=False)
@@ -152,9 +156,9 @@ def _claim_label_counts_all_traces(lang_key: str) -> tuple[pd.DataFrame, pd.Data
 
 def _format_stats_table(t: pd.DataFrame) -> pd.DataFrame:
     disp = t.copy()
-    for col in ("Mean", "Median", "Std", "Min", "Q25", "Q75", "Max"):
+    for col in ("Mean", "Median", "Std Dev", "Min", "Q1", "Q3", "Max"):
         if col in disp.columns:
-            disp[col] = disp[col].map(lambda x: f"{x:.4f}")
+            disp[col] = disp[col].map(lambda x: f"{x:.3f}")
     return disp
 
 
@@ -284,7 +288,7 @@ def _faithfulness_dist_chart_notebook_style(
             ),
             tooltip=[
                 alt.Tooltip("kind:N", title="Marker"),
-                alt.Tooltip("value:Q", title="Nilai", format=".4f"),
+                alt.Tooltip("value:Q", title="Nilai", format=".3f"),
             ],
         )
     )
@@ -297,6 +301,7 @@ def _faithfulness_dist_chart_notebook_style(
         color="#212121",
         subtitleFontSize=10,
         subtitleColor="#555555",
+        limit=500,
     )
 
     return (
@@ -568,13 +573,10 @@ def render_faithfulness_tab() -> None:
         )
 
         # Stats table: filtered by lang_key selected above (consistent with other sections).
-        all_scores_filtered = filter_all_traces_by_language(all_df_raw, lang_key)
-        if all_scores_filtered is not None and not all_scores_filtered.empty:
-            stats_tbl = _describe_faithfulness_scores(all_scores_filtered)
-            if stats_tbl is not None:
-                lang_label_map = {"all": "Keseluruhan", "en": "Bahasa Inggris", "id": "Bahasa Indonesia"}
-                st.markdown(f"**Statistik Deskriptif: {lang_label_map.get(lang_key, lang_key)}**")
-                st.dataframe(_format_stats_table(stats_tbl), use_container_width=True, hide_index=True)
+        stats_tbl = _describe_faithfulness_scores_combined(all_scores_all, all_scores_en, all_scores_id)
+        if stats_tbl is not None:
+            st.markdown("**Statistik Deskriptif Populasi Trace Score RAGAS dan FABLES**")
+            st.dataframe(_format_stats_table(stats_tbl), use_container_width=True, hide_index=True)
 
         # Six distribution charts: 2 metrics x 3 language columns.
         CHART_METRICS = [
@@ -816,21 +818,33 @@ def _render_baseline_comparison_section() -> None:
     )
 
     SIG_METRICS = [
-        ("FABLES Faithfulness", "fables_faithfulness"),
-        ("RAGAS Standard Faithfulness", "ragas_standard_faithfulness"),
-        ("G-Eval Coherence (avg raw, 1-5)", "geval_avg_raw"),
-        ("Educational Score", "educational_score"),
+        ("ragas_standard_faithfulness", "RAGAS"),
+        ("fables_faithfulness", "FABLES"),
     ]
 
-    sig_rows = []
-    for label, col_name in SIG_METRICS:
-        if col_name not in baseline_df.columns or col_name not in current_df.columns:
-            continue
-        result = compute_significance(baseline_df[col_name], current_df[col_name], label)
-        if result:
-            sig_rows.append(result)
+    from lib.analysis_utils import compute_combined_significance_faithfulness, render_combined_significance_faithfulness
+    from lib.faithfulness_metrics import load_all_traces_df
+    
+    b_all_raw = add_language_col(load_baseline_df())
+    c_all_raw = add_language_col(load_all_traces_df())
+    
+    b_en = b_all_raw[b_all_raw["language"] == "en"] if "language" in b_all_raw.columns else pd.DataFrame()
+    c_en = c_all_raw[c_all_raw["language"] == "en"] if "language" in c_all_raw.columns else pd.DataFrame()
+    b_id = b_all_raw[b_all_raw["language"] == "id"] if "language" in b_all_raw.columns else pd.DataFrame()
+    c_id = c_all_raw[c_all_raw["language"] == "id"] if "language" in c_all_raw.columns else pd.DataFrame()
 
-    render_significance_table(sig_rows)
+    sig_rows = []
+    for col_name, label in SIG_METRICS:
+        if col_name not in b_all_raw.columns or col_name not in c_all_raw.columns:
+            continue
+        res = compute_combined_significance_faithfulness(
+            b_all_raw[col_name], c_all_raw[col_name],
+            b_en[col_name] if not b_en.empty else [], c_en[col_name] if not c_en.empty else [],
+            b_id[col_name] if not b_id.empty else [], c_id[col_name] if not c_id.empty else [],
+            col_name, label
+        )
+        sig_rows.extend(res)
+    render_combined_significance_faithfulness(sig_rows)
 
     st.divider()
 
@@ -853,7 +867,7 @@ def _render_baseline_comparison_section() -> None:
     combined["Current Mean"] = pd.to_numeric(combined["Current Mean"], errors="coerce")
     combined["Baseline Mean"] = pd.to_numeric(combined["Baseline Mean"], errors="coerce")
     combined["Delta Mean"] = (combined["Current Mean"] - combined["Baseline Mean"]).round(4)
-    combined["Delta Mean"] = combined["Delta Mean"].apply(lambda x: f"{x:+.4f}" if pd.notna(x) else "N/A")
+    combined["Delta Mean"] = combined["Delta Mean"].apply(lambda x: f"{x:+.3f}" if pd.notna(x) else "N/A")
     st.dataframe(combined, use_container_width=True, hide_index=True)
 
     st.divider()

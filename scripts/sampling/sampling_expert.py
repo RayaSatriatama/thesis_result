@@ -94,7 +94,7 @@ def get_observation_critics(trace_ids):
                             critics[trace_id]['geval'][sub_metric] = f"**Skor {score}:** {reason}"
                     
                     # 2. Parsing FABLES/RAGAS Claims
-                    elif name == 'fables_verify_all_claims':
+                    elif name.startswith('fables_verify_all_claims'):
                         output = data.get('output', {})
                         if isinstance(output, str):
                             try:
@@ -103,7 +103,9 @@ def get_observation_critics(trace_ids):
                                 pass
                         
                         if isinstance(output, dict) and 'verdicts' in output:
-                            critics[trace_id]['claims'] = output.get('verdicts', [])
+                            verdicts_list = output.get('verdicts', [])
+                            if isinstance(verdicts_list, list):
+                                critics[trace_id]['claims'].extend(verdicts_list)
             except:
                 pass
     return critics
@@ -120,13 +122,12 @@ def generate_sample_for_lang(df_all, critics_data, lang_name, prompt_filter, fil
     df_valid = df.dropna(subset=[metrik_utama, metrik_sekunder_1, metrik_sekunder_2]).copy()
 
     if priority == "faithfulness":
-        df_valid['faithfulness_avg'] = (df_valid[metrik_sekunder_1] + df_valid[metrik_sekunder_2]) / 2.0
-        sort_metrics = ['faithfulness_avg', metrik_utama]
-        asc_high = [False, False]
-        asc_low = [True, True]
-        metode_desc = "**Hierarchical Metrik: Rata-rata Faithfulness (FABLES & RAGAS setara) > G-Eval Koherensi**."
-        alasan_tinggi = "1 dari 2 cerita dengan rata-rata Faithfulness (RAGAS + FABLES) Max. Jika sama, dipilih Koherensi tertinggi."
-        alasan_rendah = "1 dari 2 cerita dengan rata-rata Faithfulness Min. Jika sama, dipilih Koherensi terendah."
+        sort_metrics = [metrik_sekunder_2, metrik_sekunder_1, metrik_utama]
+        asc_high = [False, False, False]
+        asc_low = [True, True, True]
+        metode_desc = "**Hierarchical Metrik 3D: FABLES (Prioritas 1) > RAGAS (Prioritas 2) > G-Eval Koherensi (Prioritas 3)**."
+        alasan_tinggi = "1 dari 2 cerita dengan skor FABLES Max. Jika sama, dipilih RAGAS tertinggi, lalu Koherensi tertinggi."
+        alasan_rendah = "1 dari 2 cerita dengan skor FABLES Min. Jika sama, dipilih RAGAS terendah, lalu Koherensi terendah."
     else:
         sort_metrics = [metrik_utama, metrik_sekunder_1, metrik_sekunder_2]
         asc_high = [False, False, False]

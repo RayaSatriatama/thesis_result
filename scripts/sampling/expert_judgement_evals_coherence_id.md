@@ -22,7 +22,7 @@ Metode: **Disproportional Stratified Sampling** dengan **Hierarchical Metrik 3D:
 ### Judul: Petualangan Taksonomi Lebah Penyerbuk
 
 - **Koherensi (G-Eval Norm):** `0.980`
-- **Faithfulness (RAGAS):** `0.967`
+- **Faithfulness (RAGAS):** `0.947`
 - **Faithfulness (FABLES):** `1.000`
 - **Alasan Pemilihan:** 1 dari 2 cerita dengan skor Max. Koherensi tertinggi. Jika ada yang sama, dipilih RAGAS tertinggi, lalu FABLES tertinggi secara berurutan.
 
@@ -41,7 +41,7 @@ Metode: **Disproportional Stratified Sampling** dengan **Hierarchical Metrik 3D:
 - **Koherensi (G-Eval Norm):** `0.900`
 - **Faithfulness (RAGAS):** `1.000`
 - **Faithfulness (FABLES):** `1.000`
-- **Alasan Pemilihan:** Jarak 3D terdekat dengan Median Sistem: Koherensi (0.900), RAGAS (1.000), dan FABLES (1.000).
+- **Alasan Pemilihan:** Jarak 3D terdekat dengan Median Sistem: Koherensi (0.900), RAGAS (0.988), dan FABLES (1.000).
 
 ### Alasan Penilaian G-Eval (LLM-as-a-Judge)
 - **Consistency:** **Skor 5:** The narrative voice and tone remain consistently engaging and child-friendly throughout the story. There are no abrupt shifts in style or formality. The level of educational richness and detail, such as the specific heights of mountains and the duration of Antartica's ice cover, is uniformly maintained from beginning to end, providing consistent learning opportunities.
@@ -56,7 +56,7 @@ Metode: **Disproportional Stratified Sampling** dengan **Hierarchical Metrik 3D:
 ### Judul: Petualangan Roket Raksasa: Starship Sang Penjelajah Bintang
 
 - **Koherensi (G-Eval Norm):** `0.640`
-- **Faithfulness (RAGAS):** `0.900`
+- **Faithfulness (RAGAS):** `0.941`
 - **Faithfulness (FABLES):** `1.000`
 - **Alasan Pemilihan:** 1 dari 2 cerita dengan skor Min. Koherensi terendah. Bertujuan memvalidasi kegagalan sistem pada RAGAS dan FABLES yang juga terendah.
 
