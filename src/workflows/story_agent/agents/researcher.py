@@ -121,17 +121,13 @@ class ResearchAgent:
             except Exception as _e:
                 logger.warning(f"[RISET::PENGATURAN] Gagal menyiapkan Google GenAI client: {_e}")
         elif not _is_google:
-            if (
-                LLMProviderConfig.PROVIDER == "openrouter"
-                and ResearchConfig.openrouter_web_search_enabled()
-            ):
+            if ResearchConfig.web_search_enabled():
                 logger.info(
-                    "[RISET::PENGATURAN] Menggunakan OpenRouter — pencarian web tersedia lewat OpenRouter Web Plugin."
+                    f"[RISET::PENGATURAN] Web search aktif melalui {ResearchConfig.web_search_provider()}."
                 )
             else:
                 logger.info(
-                    f"[RISET::PENGATURAN] Menggunakan provider '{LLMProviderConfig.PROVIDER}' — "
-                    "pencarian web Google tidak tersedia, hanya bisa lewat basis pengetahuan (LightRAG)."
+                    "[RISET::PENGATURAN] Web search dinonaktifkan; riset memakai basis pengetahuan yang tersedia."
                 )
 
         # Flag for OpenRouter-specific web search path
@@ -378,9 +374,7 @@ class ResearchAgent:
                     tool_to_use = "web_search"
 
             # Web search (sesuai rencana atau "both")
-            if tool_to_use in ["web_search", "both"] and (
-                not self._is_openrouter or ResearchConfig.openrouter_web_search_enabled()
-            ):
+            if tool_to_use in ["web_search", "both"] and ResearchConfig.web_search_enabled():
                 tasks.append(self._search_web(item.question, language, theme))
                 task_meta.append({"type": "web", "question": item.question})
 
@@ -421,28 +415,35 @@ class ResearchAgent:
 
     async def _search_web(self, query: str, language: str, theme: str) -> tuple[str, List[dict]]:
         """Dispatch web search to the appropriate provider implementation."""
-        if self._is_openrouter or self._openrouter_api_key:
-            return await self._search_web_openrouter(query, language, theme)
-            
-        if self.client is None:
-            # Fallback to SearxNG local metasearch engine
+        provider = ResearchConfig.web_search_provider()
+        if provider == "searxng":
             return await self._search_web_searxng(query, language, theme)
-            
-        return await self._search_web_google(query, language, theme)
+        if provider == "openrouter":
+            return await self._search_web_openrouter(query, language, theme)
+        if provider == "google" and self.client is not None:
+            return await self._search_web_google(query, language, theme)
+        raise ValueError(f"Unsupported web search provider: {provider}")
 
     async def _search_web_searxng(self, query: str, language: str, theme: str) -> tuple[str, List[dict]]:
         """Perform web search via local SearxNG instance."""
         logger.info(f"[RISET::MENCARI] Sedang menelusuri web via SearxNG untuk: {query}")
         
         try:
-            searxng_url = os.getenv("SEARXNG_URL", "http://localhost:8081").rstrip("/")
+            searxng_url = ResearchConfig.searxng_url()
             search_endpoint = f"{searxng_url}/search"
             params = {
                 "q": query,
                 "format": "json",
-                "language": "id-ID"
             }
-            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            language_filter = ResearchConfig.searxng_language()
+            if language_filter:
+                params["language"] = language_filter
+            engines = ResearchConfig.searxng_engines()
+            if engines:
+                params["engines"] = ",".join(engines)
+            async with httpx.AsyncClient(
+                timeout=ResearchConfig.searxng_timeout(), follow_redirects=True
+            ) as client:
                 resp = await client.get(search_endpoint, params=params)
                 resp.raise_for_status()
                 data = resp.json()
@@ -451,7 +452,7 @@ class ResearchAgent:
             sources = []
             
             # Ambil hingga 5 hasil teratas
-            for r in data.get("results", [])[:5]:
+            for r in data.get("results", [])[:ResearchConfig.searxng_max_results()]:
                 snippet = r.get("content", "")
                 title = r.get("title", "")
                 href = r.get("url", "")
@@ -460,6 +461,11 @@ class ResearchAgent:
                     sources.append({"title": title, "uri": href, "snippet": snippet})
             
             web_text = "\n\n".join(text_chunks)
+            if not web_text:
+                logger.warning(
+                    f"[RISET::SEARXNG_EMPTY] Tidak ada hasil untuk query: {query}; "
+                    f"unresponsive={data.get('unresponsive_engines', [])}"
+                )
             return web_text, sources
             
         except Exception as e:

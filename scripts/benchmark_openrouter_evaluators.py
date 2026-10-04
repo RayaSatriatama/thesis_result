@@ -234,13 +234,16 @@ class _LangfuseBenchmarkReporter:
                 source_trace_id = str(sample.trace_id or sample.source_observation_id)
                 source_root_observation_id = str(sample.source_root_observation_id or "").strip()
                 if not source_root_observation_id:
-                    raise ValueError("source_trace mode requires StoryGenerationWorkflow root observation id")
+                    raise ValueError(
+                        "source_trace mode requires a StoryGenerationWorkflow or "
+                        "BaselineWikiEvalWorkflow root observation id"
+                    )
                 source = sources.setdefault(
                     source_trace_id,
                     {"root_id": source_root_observation_id, "observation_ids": set()},
                 )
                 if source["root_id"] != source_root_observation_id:
-                    raise ValueError("one source trace cannot have multiple StoryGenerationWorkflow roots")
+                    raise ValueError("one source trace cannot have multiple source root observations")
                 source["observation_ids"].add(sample.source_observation_id)
 
         for source_trace_id, source in sources.items():
@@ -295,7 +298,10 @@ class _LangfuseBenchmarkReporter:
         source_trace_id = str(first.get("source_trace_id") or first["source_observation_id"])
         source_root_observation_id = str(first.get("source_root_observation_id") or "").strip()
         if not source_root_observation_id:
-            raise ValueError("source_trace mode requires StoryGenerationWorkflow root observation id")
+            raise ValueError(
+                "source_trace mode requires a StoryGenerationWorkflow or "
+                "BaselineWikiEvalWorkflow root observation id"
+            )
         return source_trace_id, source_root_observation_id, first
 
     def _score_values(self, rows: list[dict[str, Any]]) -> dict[str, float]:

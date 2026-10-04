@@ -46,3 +46,26 @@ def test_finalize_ingestion_does_not_create_client_when_disabled(monkeypatch):
     )
 
     assert result == {}
+
+
+def test_searxng_is_the_default_web_search_provider(monkeypatch):
+    monkeypatch.delenv("WEB_SEARCH_PROVIDER", raising=False)
+
+    import importlib
+    import settings
+
+    settings = importlib.reload(settings)
+
+    assert settings.ResearchConfig.web_search_provider() == "searxng"
+    assert settings.ResearchConfig.searxng_engines() == ["google", "bing"]
+
+
+def test_web_search_can_be_disabled_globally(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
+
+    import importlib
+    import settings
+
+    settings = importlib.reload(settings)
+
+    assert settings.ResearchConfig.web_search_enabled() is False

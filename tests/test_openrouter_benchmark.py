@@ -408,6 +408,33 @@ def test_extract_geval_samples_keeps_source_root_observation_id():
     assert samples[0].source_root_observation_id == "root-geval-1"
 
 
+def test_extract_geval_samples_accepts_baseline_root_observation():
+    rows = [
+        {
+            "id": "baseline-root",
+            "traceId": "trace-baseline",
+            "name": "BaselineWikiEvalWorkflow",
+            "parentObservationId": None,
+        },
+        {
+            "id": "critic-baseline",
+            "traceId": "trace-baseline",
+            "name": "critic_agent",
+            "parentObservationId": "baseline-root",
+            "input": {
+                "user_message": "Question",
+                "story_content": "Story",
+            },
+            "output": {"ragas_scores": {"geval_coherence": 3.0}},
+        },
+    ]
+
+    samples = extract_geval_samples(rows)
+
+    assert len(samples) == 1
+    assert samples[0].source_root_observation_id == "baseline-root"
+
+
 def test_benchmark_trace_overlay_places_each_model_under_one_source_root():
     rows = [
         {

@@ -46,7 +46,10 @@ def build_benchmark_trace_overlay(
     source_trace_id = str(first.get("source_trace_id") or "").strip()
     source_root_id = str(first.get("source_root_observation_id") or "").strip()
     if not source_trace_id or not source_root_id:
-        raise ValueError("historical trace export must include StoryGenerationWorkflow root observation")
+        raise ValueError(
+            "historical trace export must include a StoryGenerationWorkflow or "
+            "BaselineWikiEvalWorkflow root observation"
+        )
     if any(
         str(row.get("source_trace_id") or "").strip() != source_trace_id
         or str(row.get("source_root_observation_id") or "").strip() != source_root_id

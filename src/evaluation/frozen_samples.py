@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 
+_SOURCE_ROOT_NAMES = {"StoryGenerationWorkflow", "BaselineWikiEvalWorkflow"}
+
+
 @dataclass(frozen=True)
 class FrozenFablesSample:
     source_observation_id: str
@@ -62,7 +65,7 @@ def _source_root_observation_ids(rows: Iterable[Mapping[str, Any]]) -> dict[str,
         trace_id = str(row.get("traceId") or row.get("trace_id") or "").strip()
         observation_id = str(row.get("id") or "").strip()
         parent_id = str(row.get("parentObservationId") or row.get("parent_observation_id") or "").strip()
-        if trace_id and observation_id and not parent_id and row.get("name") == "StoryGenerationWorkflow":
+        if trace_id and observation_id and not parent_id and row.get("name") in _SOURCE_ROOT_NAMES:
             roots[trace_id] = observation_id
     return roots
 

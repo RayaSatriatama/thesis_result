@@ -10,7 +10,14 @@ Berikut adalah penjelasan lengkap dari semua parameter dan *settings* yang terse
 |-----------|-----------|------------------|
 | `LLM_PROVIDER` | Menentukan platform LLM yang akan digunakan oleh agen (Planner, Writer, Critic, dsb). Pilihan: `google_vertexai`, `google_genai`, `openai`, `openrouter`, `deepseek`, `glm`, `ollama` | `google_vertexai` |
 | `LLM_MODEL` | Nama model spesifik yang akan dipanggil. Jika dikosongkan, akan memakai model default dari masing-masing *provider*. | `gemini-2.5-flash` |
-| `OPENROUTER_ENABLE_WEB_SEARCH` | Menyalakan server tool web saat `LLM_PROVIDER=openrouter`. Set `false` untuk benchmark gratis; LightRAG tetap digunakan. | `true` |
+| `WEB_SEARCH_ENABLED` | Mengaktifkan pencarian web pada ResearchAgent. | `true` |
+| `WEB_SEARCH_PROVIDER` | Backend pencarian web: `searxng`, `openrouter`, atau `google`. | `searxng` |
+| `SEARXNG_URL` | URL instance SearxNG lokal. | `http://localhost:8081` |
+| `SEARXNG_LANGUAGE` | Filter bahasa SearxNG opsional. Kosong memakai default instance. | kosong |
+| `SEARXNG_ENGINES` | Daftar engine SearxNG dipisahkan koma. | `google,bing` |
+| `SEARXNG_MAX_RESULTS` | Jumlah hasil teratas yang diteruskan ke ResearchAgent. | `5` |
+| `SEARXNG_TIMEOUT` | Batas waktu request ke SearxNG dalam detik. | `10` |
+| `OPENROUTER_ENABLE_WEB_SEARCH` | Mengaktifkan server tool web jika `WEB_SEARCH_PROVIDER=openrouter`. | `true` |
 
 ### Peran evaluator terpisah
 

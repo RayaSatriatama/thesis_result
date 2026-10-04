@@ -107,9 +107,41 @@ class ResearchConfig:
     """Konfigurasi untuk riset dengan provider eksternal."""
 
     @staticmethod
+    def web_search_enabled() -> bool:
+        """Enable web search independently from the LLM provider."""
+        return os.getenv("WEB_SEARCH_ENABLED", "true").lower() == "true"
+
+    @staticmethod
+    def web_search_provider() -> str:
+        """Select the web search backend used by the researcher."""
+        return os.getenv("WEB_SEARCH_PROVIDER", "searxng").strip().lower()
+
+    @staticmethod
     def openrouter_web_search_enabled() -> bool:
         """Aktifkan server tool web OpenRouter hanya jika diminta."""
         return os.getenv("OPENROUTER_ENABLE_WEB_SEARCH", "true").lower() == "true"
+
+    @staticmethod
+    def searxng_url() -> str:
+        return os.getenv("SEARXNG_URL", "http://localhost:8081").rstrip("/")
+
+    @staticmethod
+    def searxng_language() -> str:
+        """Optional SearxNG language filter; empty means instance default."""
+        return os.getenv("SEARXNG_LANGUAGE", "").strip()
+
+    @staticmethod
+    def searxng_engines() -> list[str]:
+        raw = os.getenv("SEARXNG_ENGINES", "google,bing")
+        return [engine.strip() for engine in raw.split(",") if engine.strip()]
+
+    @staticmethod
+    def searxng_max_results() -> int:
+        return max(1, int(os.getenv("SEARXNG_MAX_RESULTS", "5")))
+
+    @staticmethod
+    def searxng_timeout() -> float:
+        return max(1.0, float(os.getenv("SEARXNG_TIMEOUT", "10")))
 
 
 class EvaluatorConfig:
