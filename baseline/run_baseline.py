@@ -201,6 +201,43 @@ def load_checkpoint(out_dir: Path) -> Tuple[List[Dict[str, Any]], set]:
     return results, done
 
 
+def build_argument_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Baseline WikiEval runner (Langfuse-native)")
+    parser.add_argument("--dataset", type=str, default=str(DATASET_PATH), help="WikiEval JSONL path")
+    parser.add_argument("--out", type=str, default="", help="Existing output directory to resume")
+    parser.add_argument("--start", type=int, default=0, help="Start item index (0-based)")
+    parser.add_argument("--limit", type=int, default=0, help="Limit number of items (0 = all)")
+    parser.add_argument(
+        "--language",
+        choices=("id", "en", "all"),
+        default="all",
+        help="Language selection; all produces ID and EN (default)",
+    )
+    parser.add_argument("--model", default="", help="Generator model override")
+    parser.add_argument("--provider", default="", help="Generator provider override")
+    parser.add_argument("--provider-preferences", default="", help="OpenRouter provider JSON object")
+    parser.add_argument("--evaluator-model", default="", help="Independent CriticAgent model override")
+    parser.add_argument("--evaluator-provider", default="", help="Independent CriticAgent provider override")
+    parser.add_argument("--evaluator-provider-preferences", default="", help="Evaluator OpenRouter provider JSON")
+    parser.add_argument("--evaluator-ragas-model", default="", help="Independent RAGAS model override")
+    return parser
+
+
+def configure_runtime(args: argparse.Namespace) -> None:
+    values = {
+        "LLM_MODEL": args.model,
+        "LLM_PROVIDER": args.provider,
+        "OPENROUTER_PROVIDER_PREFERENCES": args.provider_preferences,
+        "EVALUATOR_MODEL": args.evaluator_model,
+        "EVALUATOR_PROVIDER": args.evaluator_provider,
+        "EVALUATOR_OPENROUTER_PROVIDER_PREFERENCES": args.evaluator_provider_preferences,
+        "EVALUATOR_RAGAS_MODEL": args.evaluator_ragas_model,
+    }
+    for key, value in values.items():
+        if value:
+            os.environ[key] = value
+
+
 async def run_one(
     *,
     item: WikiEvalItem,
@@ -225,7 +262,9 @@ async def run_one(
 
     session_id = f"baseline_item{item_idx + 1:02d}_{lang_code}"
     trace_name = "BaselineWikiEvalWorkflow"
-    tags = list(TRACE_TAGS_BASE) + [lang_code]
+    generator_model = os.getenv("LLM_MODEL", "") or "provider-default"
+    generator_provider = os.getenv("LLM_PROVIDER", "") or "provider-default"
+    tags = list(TRACE_TAGS_BASE) + [lang_code, f"generator:{generator_model}"]
 
     langfuse = get_langfuse()
     trace_id = ""
@@ -385,6 +424,10 @@ async def run_one(
         "session_id": session_id,
         "trace_id": trace_id,
         "context_merge": "v1+v2_dedup",
+        "generator_model": generator_model,
+        "generator_provider": generator_provider,
+        "evaluator_model": os.getenv("EVALUATOR_MODEL", "") or generator_model,
+        "evaluator_provider": os.getenv("EVALUATOR_PROVIDER", "") or generator_provider,
         "ref_answer": item.answer,
         "ref_context_v1": item.context_v1,
         "ref_context_v2": item.context_v2,
@@ -413,22 +456,29 @@ async def run_one(
     return result
 
 
-async def run_all(out_dir: Path, start: int = 0, limit: Optional[int] = None) -> None:
-    dataset = load_wikieval_jsonl(DATASET_PATH)
+async def run_all(
+    out_dir: Path,
+    start: int = 0,
+    limit: Optional[int] = None,
+    *,
+    dataset_path: Path = DATASET_PATH,
+    languages: Tuple[str, ...] = LANG_ORDER,
+) -> None:
+    dataset = load_wikieval_jsonl(dataset_path)
     if limit is not None:
-        dataset = dataset[:limit]
+        dataset = dataset[: start + limit]
 
     results, done = load_checkpoint(out_dir)
 
-    total = len(dataset) * len(LANG_ORDER)
+    total = len(dataset) * len(languages)
     logger.info(f"[BASELINE] Output dir: {out_dir}")
-    logger.info(f"[BASELINE] Dataset items: {len(dataset)} | Languages: {list(LANG_ORDER)} | Total runs: {total}")
+    logger.info(f"[BASELINE] Dataset items: {len(dataset)} | Languages: {list(languages)} | Total runs: {total}")
     logger.info(f"[BASELINE] Resume loaded: {len(results)} completed")
 
     for idx, item in enumerate(dataset):
         if idx < start:
             continue
-        for lang_code in LANG_ORDER:
+        for lang_code in languages:
             key = (idx, lang_code)
             if key in done:
                 continue
@@ -446,20 +496,24 @@ async def run_all(out_dir: Path, start: int = 0, limit: Optional[int] = None) ->
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Baseline WikiEval runner (Langfuse-native)")
-    parser.add_argument("--out", type=str, default="", help="Existing output directory to resume")
-    parser.add_argument("--start", type=int, default=0, help="Start item index (0-based)")
-    parser.add_argument("--limit", type=int, default=0, help="Limit number of items (0 = all)")
+    parser = build_argument_parser()
     args = parser.parse_args()
+    configure_runtime(args)
 
     out_dir = Path(args.out) if args.out else (OUTPUT_ROOT / _now_stamp())
     limit = None if args.limit <= 0 else args.limit
+    dataset_path = Path(args.dataset)
+    languages = LANG_ORDER if args.language == "all" else (args.language,)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "README.txt").write_text(
         "\n".join(
             [
                 "Baseline WikiEval output",
+                f"Dataset: {dataset_path}",
+                f"Generator model: {os.getenv('LLM_MODEL', '') or 'provider default'}",
+                f"Generator provider: {os.getenv('LLM_PROVIDER', '') or 'provider default'}",
+                f"Languages: {', '.join(languages)}",
                 "",
                 "Local files:",
                 "- results.json (array)",
@@ -476,9 +530,16 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    asyncio.run(run_all(out_dir, start=args.start, limit=limit))
+    asyncio.run(
+        run_all(
+            out_dir,
+            start=args.start,
+            limit=limit,
+            dataset_path=dataset_path,
+            languages=languages,
+        )
+    )
 
 
 if __name__ == "__main__":
     main()
-

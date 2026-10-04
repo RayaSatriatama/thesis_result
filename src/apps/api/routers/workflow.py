@@ -163,6 +163,7 @@ async def generate_sse_stream(request: WorkflowRequest) -> AsyncGenerator[str, N
         # Initialize Langfuse Trace
         langfuse = get_langfuse()
         trace_wrapper = None
+        trace_id = ""
 
         try:
             config = {"run_name": "StoryGenerationWorkflow"}
@@ -186,8 +187,9 @@ async def generate_sse_stream(request: WorkflowRequest) -> AsyncGenerator[str, N
                 langfuse.set_parent_trace(trace_wrapper, session_id=job_id)
 
                 # Add trace_id to state for distributed propagation
-                initial_state["trace_id"] = trace.trace_id
-                logger.info(f"[WORKFLOW::TRACE] Started root trace: {trace.trace_id}")
+                trace_id = trace.trace_id
+                initial_state["trace_id"] = trace_id
+                logger.info(f"[WORKFLOW::TRACE] Started root trace: {trace_id}")
 
                 # langfuse langchain CallbackHandler disabled to prevent internal spans like ChatOpenAI/RunnableSequence
                 pass
@@ -357,6 +359,7 @@ async def generate_sse_stream(request: WorkflowRequest) -> AsyncGenerator[str, N
                             elapsed = time.time() - start_time
                             final_data = {
                                 "job_id": job_id,
+                                "trace_id": trace_id,
                                 "final_story": final_state.get("final_story", ""),
                                 "draft_title": final_state.get("draft_title", ""),
                                 "quality_score": final_state.get("quality_score", 0),

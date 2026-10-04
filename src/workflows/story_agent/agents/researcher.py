@@ -816,6 +816,10 @@ class ResearchAgent:
         Final synchronization node. Ingests sources into LightRAG
         if they were actually used in the final story or draft.
         """
+        if not LightRAGConfig.INGEST_ENABLED:
+            logger.info("[RISET::INGEST] Ingestion disabled by LIGHTRAG_INGEST_ENABLED=false")
+            return {}
+
         if INTEGRATIONS_AVAILABLE:
             from ..integrations.lightrag_client import get_lightrag_client
             # Finalize ingestion occurs after everything, so we assume theme/age dictates language

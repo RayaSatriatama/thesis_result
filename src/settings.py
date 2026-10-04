@@ -349,6 +349,10 @@ class LightRAGConfig:
     CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1200"))
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
 
+    # Ingestion is opt-in so benchmark runs cannot mutate the shared knowledge
+    # base unless explicitly requested.
+    INGEST_ENABLED = os.getenv("LIGHTRAG_INGEST_ENABLED", "false").lower() == "true"
+
     # Ingestion filters
     SELECTIVE_INGESTION = os.getenv("LIGHTRAG_SELECTIVE_INGESTION", "true").lower() == "true"
     INGEST_MIN_LENGTH = int(os.getenv("LIGHTRAG_INGEST_MIN_LENGTH", "500")) # Min characters to ingest

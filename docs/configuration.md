@@ -195,6 +195,7 @@ Parameter untuk integrasi *database* pengetahuan dan *retrieval*.
 | Parameter | Deskripsi | Default |
 |-----------|-----------|---------|
 | `LIGHTRAG_API_URL` | Endpoint API untuk memanggil *service* LightRAG. | `http://localhost:9621` |
+| `LIGHTRAG_INGEST_ENABLED` | Mengizinkan workflow menulis sumber ke LightRAG. Default `false`, sehingga benchmark tidak mengubah knowledge base bersama. | `false` |
 | `LIGHTRAG_WORKING_DIR` | Direktori tempat LightRAG menyimpan indeks lokal. | `./lightrag_storage` |
 | `CHUNK_SIZE` | Ukuran pemotongan dokumen saat menelan (*ingestion*) data. | `1200` |
 | `CHUNK_OVERLAP` | Jumlah overlap karakter antar *chunk* agar tidak ada konteks yang terputus. | `100` |
