@@ -102,6 +102,22 @@ class LLMProviderConfig:
         }
         return defaults.get(cls.PROVIDER, "gemini-2.5-flash")
 
+    @staticmethod
+    def openrouter_provider_preferences() -> dict:
+        """Return validated OpenRouter provider routing preferences."""
+        raw = os.getenv("OPENROUTER_PROVIDER_PREFERENCES", "").strip()
+        if not raw:
+            return {}
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "OPENROUTER_PROVIDER_PREFERENCES must be a JSON object"
+            ) from exc
+        if not isinstance(value, dict):
+            raise ValueError("OPENROUTER_PROVIDER_PREFERENCES must be a JSON object")
+        return value
+
 
 class ResearchConfig:
     """Konfigurasi untuk riset dengan provider eksternal."""
@@ -114,12 +130,39 @@ class ResearchConfig:
     @staticmethod
     def web_search_provider() -> str:
         """Select the web search backend used by the researcher."""
-        return os.getenv("WEB_SEARCH_PROVIDER", "searxng").strip().lower()
+        return os.getenv("WEB_SEARCH_PROVIDER", "openrouter").strip().lower()
 
     @staticmethod
     def openrouter_web_search_enabled() -> bool:
         """Aktifkan server tool web OpenRouter hanya jika diminta."""
         return os.getenv("OPENROUTER_ENABLE_WEB_SEARCH", "true").lower() == "true"
+
+    @staticmethod
+    def openrouter_web_search_engine() -> str:
+        """Choose an OpenRouter Web Search server-tool engine."""
+        return os.getenv("OPENROUTER_WEB_SEARCH_ENGINE", "exa").strip().lower()
+
+    @staticmethod
+    def openrouter_web_search_max_results() -> int:
+        return min(25, max(1, int(os.getenv("OPENROUTER_WEB_SEARCH_MAX_RESULTS", "5"))))
+
+    @staticmethod
+    def openrouter_web_search_max_total_results() -> int:
+        return max(
+            ResearchConfig.openrouter_web_search_max_results(),
+            int(os.getenv("OPENROUTER_WEB_SEARCH_MAX_TOTAL_RESULTS", "5")),
+        )
+
+    @staticmethod
+    def openrouter_web_search_max_uses() -> int:
+        return min(30, max(1, int(os.getenv("OPENROUTER_WEB_SEARCH_MAX_USES", "1"))))
+
+    @staticmethod
+    def openrouter_web_search_max_characters() -> int:
+        return min(
+            100_000,
+            max(1, int(os.getenv("OPENROUTER_WEB_SEARCH_MAX_CHARACTERS", "1200"))),
+        )
 
     @staticmethod
     def searxng_url() -> str:

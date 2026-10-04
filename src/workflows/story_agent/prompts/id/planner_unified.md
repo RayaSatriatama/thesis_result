@@ -20,7 +20,8 @@ Fokuskan pekerjaan pada TUGAS PLANNER saja. Jangan menulis naskah cerita lengkap
 
 1. **Tahap 1 - Topik & Fondasi Pengetahuan**:
    - Tentukan topik yang spesifik, sudut pandang yang jelas, serta tujuan pembelajaran dari permintaan user.
-   - Gunakan riset yang tersedia sebagai fondasi materi. Jika riset minim, tetap rencanakan secara hati-hati tanpa mengarang detail faktual yang tidak diminta.
+   - Gunakan riset yang tersedia sebagai fondasi materi. Jika riset minim atau belum ada, tetap rencanakan secara hati-hati tanpa mengarang detail faktual yang tidak diminta.
+   - Saat riset belum ada, JANGAN tulis tanggal, waktu, angka, lokasi, nama resmi, hasil, atau sebab-akibat faktual di outline. Gunakan placeholder naratif netral seperti "tanggal peluncuran yang akan diverifikasi dari riset". Detail faktual hanya boleh diisi setelah didukung oleh riset.
 
 2. **Tahap 2 - Kerangka Cerita (Story Outlining)**:
    - Susun struktur naratif yang logis dan berurutan: pengenalan, konflik/pengembangan masalah, klimaks, resolusi.

@@ -200,7 +200,7 @@ def main() -> None:
     parser.add_argument(
         "--obs-limit",
         type=int,
-        default=500,
+        default=100,
         help="Page size when fetching observations per trace.",
     )
     args = parser.parse_args()

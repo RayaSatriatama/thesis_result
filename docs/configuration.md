@@ -11,13 +11,18 @@ Berikut adalah penjelasan lengkap dari semua parameter dan *settings* yang terse
 | `LLM_PROVIDER` | Menentukan platform LLM yang akan digunakan oleh agen (Planner, Writer, Critic, dsb). Pilihan: `google_vertexai`, `google_genai`, `openai`, `openrouter`, `deepseek`, `glm`, `ollama` | `google_vertexai` |
 | `LLM_MODEL` | Nama model spesifik yang akan dipanggil. Jika dikosongkan, akan memakai model default dari masing-masing *provider*. | `gemini-2.5-flash` |
 | `WEB_SEARCH_ENABLED` | Mengaktifkan pencarian web pada ResearchAgent. | `true` |
-| `WEB_SEARCH_PROVIDER` | Backend pencarian web: `searxng`, `openrouter`, atau `google`. | `searxng` |
+| `WEB_SEARCH_PROVIDER` | Backend pencarian web: `openrouter`, `searxng`, atau `google`. | `openrouter` |
 | `SEARXNG_URL` | URL instance SearxNG lokal. | `http://localhost:8081` |
 | `SEARXNG_LANGUAGE` | Filter bahasa SearxNG opsional. Kosong memakai default instance. | kosong |
 | `SEARXNG_ENGINES` | Daftar engine SearxNG dipisahkan koma. | `google,bing` |
 | `SEARXNG_MAX_RESULTS` | Jumlah hasil teratas yang diteruskan ke ResearchAgent. | `5` |
 | `SEARXNG_TIMEOUT` | Batas waktu request ke SearxNG dalam detik. | `10` |
 | `OPENROUTER_ENABLE_WEB_SEARCH` | Mengaktifkan server tool web jika `WEB_SEARCH_PROVIDER=openrouter`. | `true` |
+| `OPENROUTER_WEB_SEARCH_ENGINE` | Engine server tool OpenRouter: `auto`, `native`, `exa`, `firecrawl`, `parallel`, atau `perplexity`. | `exa` |
+| `OPENROUTER_WEB_SEARCH_MAX_RESULTS` | Batas hasil per pencarian OpenRouter, 1-25. | `5` |
+| `OPENROUTER_WEB_SEARCH_MAX_TOTAL_RESULTS` | Batas hasil akumulatif pada satu request OpenRouter. | `5` |
+| `OPENROUTER_WEB_SEARCH_MAX_USES` | Batas pencarian yang boleh dipanggil model pada satu request, 1-30. | `1` |
+| `OPENROUTER_WEB_SEARCH_MAX_CHARACTERS` | Batas karakter konteks per hasil untuk engine yang mendukungnya. | `1200` |
 
 ### Peran evaluator terpisah
 

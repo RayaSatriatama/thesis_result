@@ -18,7 +18,14 @@ from loguru import logger
 import httpx
 from ..state import StoryState
 from ..prompts import get_registry
-from settings import ModelConfig, StoryConfig, LightRAGConfig, LanguageConfig, ResearchConfig
+from settings import (
+    LLMProviderConfig,
+    ModelConfig,
+    StoryConfig,
+    LightRAGConfig,
+    LanguageConfig,
+    ResearchConfig,
+)
 import os
 import hashlib
 import httpx
@@ -419,6 +426,9 @@ class ResearchAgent:
         if provider == "searxng":
             return await self._search_web_searxng(query, language, theme)
         if provider == "openrouter":
+            if not ResearchConfig.openrouter_web_search_enabled():
+                logger.info("[RISET::OPENROUTER_OFF] Web search OpenRouter dinonaktifkan.")
+                return "", []
             return await self._search_web_openrouter(query, language, theme)
         if provider == "google" and self.client is not None:
             return await self._search_web_google(query, language, theme)
@@ -473,11 +483,9 @@ class ResearchAgent:
             return "", []
 
     async def _search_web_openrouter(self, query: str, language: str, theme: str) -> tuple[str, List[dict]]:
-        """Perform web search via OpenRouter Web Plugin.
+        """Perform web search with OpenRouter's Web Search server tool.
 
-        Calls OpenRouter API with ``plugins: [{"id": "web"}]`` which triggers
-        real-time web retrieval on any capable model.  Sources are extracted
-        from the ``annotations`` field returned by OpenRouter.
+        Sources are extracted from standard ``url_citation`` annotations.
         """
         logger.info(f"[RISET::MENCARI] Sedang menelusuri web untuk: {query}")
         start_time = time.time()
@@ -503,12 +511,23 @@ class ResearchAgent:
         # If using Ollama/DeepSeek as main provider, use a fast/cheap OR model strictly for searching
         search_model = self.model_name if self._is_openrouter else "google/gemini-2.5-flash"
 
+        tool_parameters = {
+            "engine": ResearchConfig.openrouter_web_search_engine(),
+            "max_results": ResearchConfig.openrouter_web_search_max_results(),
+            "max_total_results": ResearchConfig.openrouter_web_search_max_total_results(),
+            "max_uses": ResearchConfig.openrouter_web_search_max_uses(),
+            "max_characters": ResearchConfig.openrouter_web_search_max_characters(),
+        }
         payload = {
             "model": search_model,
             "messages": [{"role": "user", "content": prompt}],
-            "plugins": [{"id": "web"}],
+            "tools": [{"type": "openrouter:web_search", "parameters": tool_parameters}],
+            "max_tool_calls": tool_parameters["max_uses"],
             "temperature": 0.3,
         }
+        provider_preferences = LLMProviderConfig.openrouter_provider_preferences()
+        if provider_preferences:
+            payload["provider"] = provider_preferences
 
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:

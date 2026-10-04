@@ -7,3 +7,4 @@
 - If writing in Indonesian, use natural, engaging Bahasa Indonesia
 - Separate paragraphs with double newlines for clear structure
 - **CITE YOUR SOURCES**: When using facts from research notes, try to mention the source title or a part of the URI/link if appropriate for the story (e.g., in an introductory note, as a footnote, or naturally in text). This helps our knowledge ingestion system.
+- **FACT PRECEDENCE**: Research Material is the sole source of factual truth. If the Story Outline conflicts with research, lacks supporting research, or contains a factual placeholder, ignore that outline detail and write only the researched fact or neutral narration.
