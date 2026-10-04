@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -57,6 +58,31 @@ def test_agentic_selection_can_run_exactly_one_story():
     assert [(idx, language) for idx, _row, language in selected] == [(0, "id")]
 
 
+def test_agentic_checkpoint_retries_rows_without_external_evaluation(tmp_path: Path):
+    runner = _load("wikieval_api_runner_checkpoint", ROOT / "scripts" / "run_wikieval_api_benchmark.py")
+    checkpoint = tmp_path / "results.jsonl"
+    checkpoint.write_text(
+        "\n".join(
+            [
+                json.dumps({"item_idx": 0, "language": "id", "status": "completed"}),
+                json.dumps(
+                    {
+                        "item_idx": 1,
+                        "language": "id",
+                        "status": "completed",
+                        "external_evaluation_status": "completed",
+                    }
+                ),
+            ]
+        )
+        + "\n"
+    )
+
+    _results, done = runner._read_checkpoint(checkpoint)
+
+    assert done == {(1, "id")}
+
+
 def test_baseline_runner_accepts_model_and_provider_options():
     runner = _load("baseline_runner", ROOT / "baseline" / "run_baseline.py")
     parser = runner.build_argument_parser()
@@ -75,3 +101,28 @@ def test_baseline_runner_accepts_model_and_provider_options():
     assert args.model == "openai/gpt-4o-mini"
     assert args.provider == "openrouter"
     assert args.limit == 1
+
+
+def test_baseline_checkpoint_retries_rows_without_external_evaluation(tmp_path: Path):
+    runner = _load("baseline_runner_checkpoint", ROOT / "baseline" / "run_baseline.py")
+    checkpoint = tmp_path / "results.jsonl"
+    checkpoint.write_text(
+        "\n".join(
+            [
+                json.dumps({"item_idx": 0, "language": "id", "error": None}),
+                json.dumps(
+                    {
+                        "item_idx": 1,
+                        "language": "id",
+                        "error": None,
+                        "external_evaluation_status": "completed",
+                    }
+                ),
+            ]
+        )
+        + "\n"
+    )
+
+    _results, done = runner.load_checkpoint(tmp_path)
+
+    assert done == {(1, "id")}

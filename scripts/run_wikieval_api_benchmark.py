@@ -120,7 +120,8 @@ def _read_checkpoint(path: Path) -> tuple[list[dict[str, Any]], set[tuple[int, s
                 continue
             row = json.loads(line)
             results.append(row)
-            done.add((int(row["item_idx"]), str(row["language"])))
+            if row.get("status") == "completed" and row.get("external_evaluation_status") == "completed":
+                done.add((int(row["item_idx"]), str(row["language"])))
     return results, done
 
 
@@ -155,6 +156,9 @@ def _request_story(
 
 
 def run(args: argparse.Namespace) -> int:
+    from evaluation.external_evaluator_gate import evaluator_ids_from_config
+
+    evaluator_ids_from_config(Path(args.external_evaluator_config))
     rows = load_dataset(Path(args.dataset))
     languages = tuple(args.languages.split(","))
     out_dir = Path(args.out)
@@ -210,12 +214,24 @@ def run(args: argparse.Namespace) -> int:
                     "api_error": error_event.data if error_event else None,
                 }
             )
+            if result["status"] == "completed":
+                from evaluation.external_evaluator_gate import run_external_evaluator_gate
+
+                evaluator_ids = run_external_evaluator_gate(
+                    trace_id=result["trace_id"],
+                    config_path=Path(args.external_evaluator_config),
+                    workspace_root=ROOT,
+                    output_dir=out_dir,
+                )
+                result["external_evaluator_ids"] = list(evaluator_ids)
+                result["external_evaluation_status"] = "completed"
         except Exception as exc:
             result.update({"status": "error", "error": repr(exc)})
         result["finished_at"] = datetime.now(timezone.utc).isoformat()
         _append_checkpoint(checkpoint_path, result)
         results.append(result)
-        done.add((item_idx, language_code))
+        if result.get("status") == "completed" and result.get("external_evaluation_status") == "completed":
+            done.add((item_idx, language_code))
         (out_dir / "results.json").write_text(json.dumps(results, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         if args.sleep_seconds > 0:
             time.sleep(args.sleep_seconds)
@@ -237,6 +253,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--story-length", default="medium")
     parser.add_argument("--timeout", type=float, default=1800.0)
     parser.add_argument("--sleep-seconds", type=float, default=1.0)
+    parser.add_argument(
+        "--external-evaluator-config",
+        default=str(ROOT / "configs" / "external_evaluators_3_models.json"),
+        help="Three-evaluator config required before a completed batch item is checkpointed.",
+    )
     return parser
 
 

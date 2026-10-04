@@ -197,7 +197,8 @@ def load_checkpoint(out_dir: Path) -> Tuple[List[Dict[str, Any]], set]:
                 continue
             obj = json.loads(line)
             results.append(obj)
-            done.add((obj.get("item_idx"), obj.get("language")))
+            if not obj.get("error") and obj.get("external_evaluation_status") == "completed":
+                done.add((obj.get("item_idx"), obj.get("language")))
     return results, done
 
 
@@ -220,6 +221,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--evaluator-provider", default="", help="Independent CriticAgent provider override")
     parser.add_argument("--evaluator-provider-preferences", default="", help="Evaluator OpenRouter provider JSON")
     parser.add_argument("--evaluator-ragas-model", default="", help="Independent RAGAS model override")
+    parser.add_argument(
+        "--external-evaluator-config",
+        default=str(ROOT / "configs" / "external_evaluators_3_models.json"),
+        help="Three-evaluator gate required before a batch item is checkpointed.",
+    )
     return parser
 
 
@@ -244,6 +250,7 @@ async def run_one(
     item_idx: int,
     lang_code: str,
     out_dir: Path,
+    external_evaluator_config: Path,
 ) -> Dict[str, Any]:
     import importlib
 
@@ -413,6 +420,22 @@ async def run_one(
     except Exception:
         err = traceback.format_exc()
 
+    external_evaluator_ids: List[str] = []
+    if not err:
+        try:
+            from evaluation.external_evaluator_gate import run_external_evaluator_gate
+
+            external_evaluator_ids = list(
+                run_external_evaluator_gate(
+                    trace_id=trace_id,
+                    config_path=external_evaluator_config,
+                    workspace_root=ROOT,
+                    output_dir=out_dir,
+                )
+            )
+        except Exception:
+            err = traceback.format_exc()
+
     end_ts = datetime.now()
     duration_sec = (end_ts - start_ts).total_seconds()
 
@@ -443,6 +466,8 @@ async def run_one(
         "revision_count": critic_result.get("revision_count", 0),
         "structured_critique": critic_result.get("structured_critique", {}),
         "ragas_scores": critic_result.get("ragas_scores", {}),
+        "external_evaluator_ids": external_evaluator_ids,
+        "external_evaluation_status": "completed" if external_evaluator_ids else "failed",
     }
 
     # write per-item json (for quick inspection)
@@ -463,6 +488,7 @@ async def run_all(
     *,
     dataset_path: Path = DATASET_PATH,
     languages: Tuple[str, ...] = LANG_ORDER,
+    external_evaluator_config: Path = ROOT / "configs" / "external_evaluators_3_models.json",
 ) -> None:
     dataset = load_wikieval_jsonl(dataset_path)
     if limit is not None:
@@ -485,9 +511,16 @@ async def run_all(
 
             label = f"item{idx + 1:02d}_{lang_code}"
             logger.info(f"[BASELINE] Running {label} | source={item.source}")
-            res = await run_one(item=item, item_idx=idx, lang_code=lang_code, out_dir=out_dir)
+            res = await run_one(
+                item=item,
+                item_idx=idx,
+                lang_code=lang_code,
+                out_dir=out_dir,
+                external_evaluator_config=external_evaluator_config,
+            )
             results.append(res)
-            done.add(key)
+            if not res.get("error") and res.get("external_evaluation_status") == "completed":
+                done.add(key)
 
             save_outputs(out_dir, results)
             logger.info(f"[BASELINE] Saved checkpoint: {label}")
@@ -499,6 +532,10 @@ def main() -> None:
     parser = build_argument_parser()
     args = parser.parse_args()
     configure_runtime(args)
+
+    from evaluation.external_evaluator_gate import evaluator_ids_from_config
+
+    evaluator_ids_from_config(Path(args.external_evaluator_config))
 
     out_dir = Path(args.out) if args.out else (OUTPUT_ROOT / _now_stamp())
     limit = None if args.limit <= 0 else args.limit
@@ -537,6 +574,7 @@ def main() -> None:
             limit=limit,
             dataset_path=dataset_path,
             languages=languages,
+            external_evaluator_config=Path(args.external_evaluator_config),
         )
     )
 

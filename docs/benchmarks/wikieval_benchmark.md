@@ -59,11 +59,14 @@ menyimpan model generator dan evaluator di metadata serta tag Langfuse.
 
 ## Evaluator eksternal
 
-Tiga evaluator benchmark (GEval, FABLES, dan RAGAS) tetap dijalankan oleh
-`scripts/benchmark_openrouter_evaluators.py` pada trace baru atau export trace
-yang dipilih. Evaluator dibuat sebagai node model terpisah di bawah satu trace,
-sehingga skor tidak bertumpuk dengan nama yang sama. Smoke benchmark cukup
-memproses trace dari satu cerita, bukan seluruh 200 cerita.
+Kedua runner menjalankan gate evaluator eksternal sebelum checkpoint sebuah
+cerita dianggap selesai. Konfigurasinya adalah
+`configs/external_evaluators_3_models.json`: GPT-4o-mini melalui OpenAI,
+Gemini 2.5 Flash melalui Google AI Studio, dan DeepSeek V4.1 Flash melalui
+DeepInfra. Setiap model menjalankan G-Eval, FABLES, dan RAGAS secara paralel.
+Hasilnya menjadi node model terpisah di bawah trace cerita sumber yang sama,
+sehingga skor tidak bertumpuk dan checkpoint tanpa sembilan hasil tersebut
+akan dicoba ulang saat runner diteruskan.
 
 ## LightRAG dan web search
 
