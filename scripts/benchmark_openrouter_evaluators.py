@@ -12,6 +12,7 @@ import argparse
 from contextvars import ContextVar
 import json
 import os
+import secrets
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,11 +49,105 @@ from evaluation.openrouter_benchmark import (  # noqa: E402
 )
 
 
-class _BenchmarkEvaluatorObserver:
-    """Expose native evaluator steps under one prepared evaluator observation."""
+class _BenchmarkIngestionWriter:
+    """Append benchmark observations below a source root without touching its trace row."""
 
-    def __init__(self, *, client: Any, trace_id: str, evaluator_observation_id: str):
+    def __init__(self, client: Any):
         self.client = client
+        self._span_start_times: dict[str, str] = {}
+
+    @staticmethod
+    def _now() -> str:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+    def start_span(
+        self,
+        *,
+        trace_id: str,
+        parent_observation_id: str,
+        name: str,
+        input_data: Any = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        observation_id = secrets.token_hex(8)
+        started_at = self._now()
+        error = self.client._ingestion_span_create(
+            trace_id=trace_id,
+            parent_observation_id=parent_observation_id,
+            observation_id=observation_id,
+            name=name,
+            start_time=started_at,
+            end_time=started_at,
+            input_data=input_data,
+            metadata=metadata or {},
+        )
+        if error:
+            raise RuntimeError(f"Langfuse span-create failed for {name}: {error}")
+        self._span_start_times[observation_id] = started_at
+        return observation_id
+
+    def end_span(self, *, trace_id: str, observation_id: str, output_data: Any = None) -> None:
+        ended_at = self._now()
+        error = self.client._ingestion_span_update(
+            trace_id=trace_id,
+            observation_id=observation_id,
+            start_time=self._span_start_times.pop(observation_id, ended_at),
+            end_time=ended_at,
+            output_data=output_data,
+        )
+        if error:
+            raise RuntimeError(f"Langfuse span-update failed for {observation_id}: {error}")
+
+    def log_generation(
+        self,
+        *,
+        trace_id: str,
+        parent_observation_id: str,
+        name: str,
+        model: str,
+        input_text: str,
+        output_text: str,
+        usage_details: dict[str, int] | None = None,
+        metadata: dict[str, Any] | None = None,
+        messages: list[dict[str, Any]] | None = None,
+    ) -> None:
+        usage = usage_details or {}
+        error = self.client._ingestion_generation_create(
+            trace_id=trace_id,
+            parent_observation_id=parent_observation_id,
+            name=name,
+            model=model,
+            generation_input=messages if messages is not None else input_text,
+            output_text=output_text,
+            usage_details={
+                "input": int(usage.get("input") or 0),
+                "output": int(usage.get("output") or 0),
+                "total": int(
+                    usage.get("total")
+                    or (usage.get("input") or 0) + (usage.get("output") or 0)
+                ),
+            },
+            metadata=metadata or {},
+        )
+        if error:
+            raise RuntimeError(f"Langfuse generation-create failed for {name}: {error}")
+
+    def create_score(self, **kwargs: Any) -> None:
+        sdk_client = getattr(self.client, "client", None)
+        if sdk_client is None:
+            self.client.create_score(**kwargs)
+            return
+        sdk_client.create_score(**kwargs)
+
+    def flush(self) -> None:
+        self.client.flush()
+
+
+class _BenchmarkEvaluatorObserver:
+    """Expose native evaluator steps under one prepared ingestion-backed evaluator span."""
+
+    def __init__(self, *, writer: _BenchmarkIngestionWriter, trace_id: str, evaluator_observation_id: str):
+        self.writer = writer
         self.trace_id = trace_id
         self.evaluator_observation_id = evaluator_observation_id
         self.enabled = True
@@ -60,13 +155,7 @@ class _BenchmarkEvaluatorObserver:
             f"benchmark_parent_{evaluator_observation_id}",
             default=evaluator_observation_id,
         )
-        self._spans: dict[str, tuple[Any, Any, Any]] = {}
-
-    def _trace_context(self) -> dict[str, str]:
-        return {
-            "trace_id": self.trace_id,
-            "parent_span_id": self._parent_observation_id.get(),
-        }
+        self._spans: dict[str, Any] = {}
 
     def start_span(
         self,
@@ -75,17 +164,15 @@ class _BenchmarkEvaluatorObserver:
         input_data: Any = None,
         metadata: dict[str, Any] | None = None,
     ) -> str:
-        context = self.client.start_as_current_observation(
+        span_id = self.writer.start_span(
+            trace_id=self.trace_id,
+            parent_observation_id=self._parent_observation_id.get(),
             name=name,
-            as_type="span",
-            input=input_data,
+            input_data=input_data,
             metadata=metadata or {},
-            trace_context=self._trace_context(),
         )
-        observation = context.__enter__()
-        span_id = str(observation.id)
         parent_token = self._parent_observation_id.set(span_id)
-        self._spans[span_id] = (context, observation, parent_token)
+        self._spans[span_id] = parent_token
         return span_id
 
     def end_span(self, span_id: str | None, output_data: Any = None) -> None:
@@ -94,16 +181,15 @@ class _BenchmarkEvaluatorObserver:
         span = self._spans.pop(span_id, None)
         if not span:
             return
-        context, observation, parent_token = span
+        parent_token = span
         try:
-            update_current_span = getattr(self.client, "update_current_span", None)
-            if update_current_span:
-                update_current_span(output=output_data)
-            elif hasattr(observation, "update"):
-                observation.update(output=output_data)
+            self.writer.end_span(
+                trace_id=self.trace_id,
+                observation_id=span_id,
+                output_data=output_data,
+            )
         finally:
             self._parent_observation_id.reset(parent_token)
-            context.__exit__(None, None, None)
 
     def log_generation(
         self,
@@ -117,18 +203,17 @@ class _BenchmarkEvaluatorObserver:
         messages: list[dict[str, Any]] | None = None,
         **_unused: Any,
     ) -> None:
-        context = self.client.start_as_current_observation(
+        self.writer.log_generation(
+            trace_id=self.trace_id,
+            parent_observation_id=self._parent_observation_id.get(),
             name=name,
-            as_type="generation",
             model=model,
-            input=messages if messages is not None else input_text,
-            output=output_text,
             usage_details=usage_details,
             metadata=metadata or {},
-            trace_context=self._trace_context(),
+            input_text=input_text,
+            output_text=output_text,
+            messages=messages,
         )
-        with context:
-            pass
 
     def create_score(self, **_unused: Any) -> None:
         """Scores are consolidated on the model evaluator after all metric calls finish."""
@@ -195,6 +280,8 @@ class _LangfuseBenchmarkReporter:
         self.output_dir = output_dir
         self.score_timestamp = datetime.now(timezone.utc)
         self._live_observers: dict[tuple[str, str], _BenchmarkEvaluatorObserver] = {}
+        self._source_trace_writer: _BenchmarkIngestionWriter | None = None
+        self._source_chain_ids: dict[str, str] = {}
         if config.langfuse.mode == "local_export":
             self.client = None
             return
@@ -203,22 +290,35 @@ class _LangfuseBenchmarkReporter:
             return
         if not os.getenv("LANGFUSE_PUBLIC_KEY") or not os.getenv("LANGFUSE_SECRET_KEY"):
             raise ValueError("Langfuse reporting requires LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY")
+        if config.langfuse.mode == "source_trace":
+            self.client = None
+            return
         from langfuse import Langfuse
 
         self.client = Langfuse()
 
     @property
     def enabled(self) -> bool:
-        return self.client is not None
+        return self.client is not None or self._source_trace_writer is not None
+
+    def _get_source_trace_writer(self) -> _BenchmarkIngestionWriter:
+        if self._source_trace_writer is None:
+            from workflows.story_agent.integrations.langfuse_client import get_langfuse
+
+            client = get_langfuse()
+            if not client.enabled:
+                raise ValueError("Langfuse source_trace reporting is unavailable")
+            self._source_trace_writer = _BenchmarkIngestionWriter(client)
+        return self._source_trace_writer
 
     def record(self, rows: list[dict[str, Any]]) -> None:
         if self.config.langfuse.mode == "local_export":
             self._write_local_overlay(rows)
             return
-        if not self.client:
-            return
         if self.config.langfuse.mode == "source_trace":
             self._record_on_source_trace(rows)
+            return
+        if not self.client:
             return
         self._record_as_separate_trace(rows)
 
@@ -226,8 +326,9 @@ class _LangfuseBenchmarkReporter:
         self, samples_by_metric: dict[str, list[Any]]
     ) -> dict[tuple[str, str], _BenchmarkEvaluatorObserver]:
         """Create stable model parents before concurrent native evaluator work starts."""
-        if self.config.langfuse.mode != "source_trace" or not self.client:
+        if self.config.langfuse.mode != "source_trace":
             return {}
+        writer = self._get_source_trace_writer()
         sources: dict[str, dict[str, Any]] = {}
         for samples in samples_by_metric.values():
             for sample in samples:
@@ -247,43 +348,43 @@ class _LangfuseBenchmarkReporter:
                 source["observation_ids"].add(sample.source_observation_id)
 
         for source_trace_id, source in sources.items():
-            with self.client.start_as_current_observation(
+            chain_id = writer.start_span(
+                trace_id=source_trace_id,
+                parent_observation_id=source["root_id"],
                 name="external_benchmark_evaluation",
-                as_type="chain",
-                trace_context={"trace_id": source_trace_id, "parent_span_id": source["root_id"]},
-                input={"source_trace_id": source_trace_id, "benchmark_run_id": self.benchmark_run_id},
+                input_data={"source_trace_id": source_trace_id, "benchmark_run_id": self.benchmark_run_id},
                 metadata={"benchmark_run_id": self.benchmark_run_id},
-            ) as chain:
-                for target in self.config.evaluators:
-                    evaluator = target.to_dict()
-                    provider_preferences = dict(target.provider_preferences)
-                    only = provider_preferences.get("only")
-                    provider = only[0] if isinstance(only, list) and len(only) == 1 else "openrouter"
-                    metadata = {
-                        "benchmark_run_id": self.benchmark_run_id,
-                        "source_trace_id": source_trace_id,
-                        "source_observation_ids": sorted(source["observation_ids"]),
-                        "evaluator_id": target.identifier,
-                        "evaluator_model": target.model,
-                        "provider": provider,
-                        "provider_preferences": provider_preferences,
-                        "metrics": list(self.config.metrics),
-                    }
-                    with self.client.start_as_current_observation(
-                        name=target.identifier,
-                        as_type="evaluator",
-                        model=target.model,
-                        input={"source_trace_id": source_trace_id, "metrics": list(self.config.metrics)},
-                        metadata=metadata,
-                        trace_context={"trace_id": source_trace_id, "parent_span_id": chain.id},
-                    ) as observation:
-                        self._live_observers[(source_trace_id, target.identifier)] = (
-                            _BenchmarkEvaluatorObserver(
-                                client=self.client,
-                                trace_id=source_trace_id,
-                                evaluator_observation_id=observation.id,
-                            )
-                        )
+            )
+            self._source_chain_ids[source_trace_id] = chain_id
+            for target in self.config.evaluators:
+                evaluator = target.to_dict()
+                provider_preferences = dict(target.provider_preferences)
+                only = provider_preferences.get("only")
+                provider = only[0] if isinstance(only, list) and len(only) == 1 else "openrouter"
+                metadata = {
+                    "benchmark_run_id": self.benchmark_run_id,
+                    "source_trace_id": source_trace_id,
+                    "source_observation_ids": sorted(source["observation_ids"]),
+                    "evaluator_id": target.identifier,
+                    "evaluator_model": target.model,
+                    "provider": provider,
+                    "provider_preferences": provider_preferences,
+                    "metrics": list(self.config.metrics),
+                }
+                evaluator_observation_id = writer.start_span(
+                    trace_id=source_trace_id,
+                    parent_observation_id=chain_id,
+                    name=target.identifier,
+                    input_data={"source_trace_id": source_trace_id, "metrics": list(self.config.metrics)},
+                    metadata=metadata,
+                )
+                self._live_observers[(source_trace_id, target.identifier)] = (
+                    _BenchmarkEvaluatorObserver(
+                        writer=writer,
+                        trace_id=source_trace_id,
+                        evaluator_observation_id=evaluator_observation_id,
+                    )
+                )
         return dict(self._live_observers)
 
     def _write_local_overlay(self, rows: list[dict[str, Any]]) -> None:
@@ -331,63 +432,95 @@ class _LangfuseBenchmarkReporter:
         if self._live_observers:
             self._record_scores_on_prepared_source_trace(rows, source_trace_id)
             return
-        from langfuse import propagate_attributes
-
-        session_id = self.config.langfuse.session_id_template.format(source_trace_id=source_trace_id)
+        writer = self._get_source_trace_writer()
         by_evaluator: dict[str, list[dict[str, Any]]] = {}
         for row in rows:
             by_evaluator.setdefault(row["evaluator"]["identifier"], []).append(row)
-        with propagate_attributes(session_id=session_id):
-            with self.client.start_as_current_observation(
-                name="external_benchmark_evaluation",
-                as_type="chain",
-                trace_context={"trace_id": source_trace_id, "parent_span_id": source_root_observation_id},
-                input={"source_trace_id": source_trace_id, "benchmark_run_id": self.benchmark_run_id},
-                metadata={"benchmark_run_id": self.benchmark_run_id},
-            ):
-                for evaluator_rows in by_evaluator.values():
-                    evaluator = evaluator_rows[0]["evaluator"]
-                    metadata = self._metadata(evaluator_rows, source_trace_id, evaluator)
-                    score_values = self._score_values(evaluator_rows)
-                    with self.client.start_as_current_observation(
-                        name=evaluator["identifier"],
-                        as_type="evaluator",
-                        model=evaluator["model"],
-                        input={"source_trace_id": source_trace_id, "metrics": metadata["metrics"]},
-                        output={
-                            "status": {row["metric"]: row["status"] for row in evaluator_rows},
-                            "error": {row["metric"]: row["error"] for row in evaluator_rows if row["error"]},
-                            "scores": score_values,
-                        },
-                        metadata=metadata,
-                    ) as observation:
-                        for row in evaluator_rows:
-                            with self.client.start_as_current_observation(
-                                name=row["metric"],
-                                as_type="evaluator",
-                                input={"source_observation_id": row["source_observation_id"]},
-                                output={"status": row["status"], "error": row["error"]},
-                            ):
-                                pass
-                        for name, value in score_values.items():
-                            self.client.create_score(
-                                trace_id=source_trace_id,
-                                observation_id=observation.id,
-                                name=name,
-                                value=value,
-                                config_id=(self.config.langfuse.score_config_ids or {}).get(name),
-                                score_id=(
-                                    f"{self.benchmark_run_id}:{source_trace_id}:"
-                                    f"{evaluator['identifier']}:{name}"
-                                ),
-                                data_type="NUMERIC",
-                                metadata=metadata,
-                                timestamp=self.score_timestamp,
-                            )
+        chain_id = writer.start_span(
+            trace_id=source_trace_id,
+            parent_observation_id=source_root_observation_id,
+            name="external_benchmark_evaluation",
+            input_data={"source_trace_id": source_trace_id, "benchmark_run_id": self.benchmark_run_id},
+            metadata={"benchmark_run_id": self.benchmark_run_id},
+        )
+        for evaluator_rows in by_evaluator.values():
+            evaluator = evaluator_rows[0]["evaluator"]
+            metadata = self._metadata(evaluator_rows, source_trace_id, evaluator)
+            score_values = self._score_values(evaluator_rows)
+            evaluator_id = writer.start_span(
+                trace_id=source_trace_id,
+                parent_observation_id=chain_id,
+                name=evaluator["identifier"],
+                input_data={"source_trace_id": source_trace_id, "metrics": metadata["metrics"]},
+                metadata=metadata,
+            )
+            for row in evaluator_rows:
+                metric_id = writer.start_span(
+                    trace_id=source_trace_id,
+                    parent_observation_id=evaluator_id,
+                    name=row["metric"],
+                    input_data={"source_observation_id": row["source_observation_id"]},
+                    metadata=metadata,
+                )
+                writer.end_span(
+                    trace_id=source_trace_id,
+                    observation_id=metric_id,
+                    output_data={"status": row["status"], "error": row["error"]},
+                )
+            self._write_evaluator_scores(
+                writer, source_trace_id, evaluator_id, evaluator_rows, metadata, score_values
+            )
+            writer.end_span(
+                trace_id=source_trace_id,
+                observation_id=evaluator_id,
+                output_data=self._evaluator_output(evaluator_rows, score_values),
+            )
+        writer.end_span(
+            trace_id=source_trace_id,
+            observation_id=chain_id,
+            output_data={"benchmark_run_id": self.benchmark_run_id, "status": "completed"},
+        )
+
+    @staticmethod
+    def _evaluator_output(
+        rows: list[dict[str, Any]], score_values: dict[str, float]
+    ) -> dict[str, Any]:
+        return {
+            "status": {row["metric"]: row["status"] for row in rows},
+            "error": {row["metric"]: row["error"] for row in rows if row["error"]},
+            "scores": score_values,
+        }
+
+    def _write_evaluator_scores(
+        self,
+        writer: _BenchmarkIngestionWriter,
+        source_trace_id: str,
+        evaluator_observation_id: str,
+        evaluator_rows: list[dict[str, Any]],
+        metadata: dict[str, Any],
+        score_values: dict[str, float],
+    ) -> None:
+        evaluator_id = evaluator_rows[0]["evaluator"]["identifier"]
+        for name, value in score_values.items():
+            writer.create_score(
+                trace_id=source_trace_id,
+                observation_id=evaluator_observation_id,
+                name=name,
+                value=value,
+                config_id=(self.config.langfuse.score_config_ids or {}).get(name),
+                score_id=(
+                    f"{self.benchmark_run_id}:{source_trace_id}:"
+                    f"{evaluator_id}:{name}"
+                ),
+                data_type="NUMERIC",
+                metadata=metadata,
+                timestamp=self.score_timestamp,
+            )
 
     def _record_scores_on_prepared_source_trace(
         self, rows: list[dict[str, Any]], source_trace_id: str
     ) -> None:
+        writer = self._get_source_trace_writer()
         by_evaluator: dict[str, list[dict[str, Any]]] = {}
         for row in rows:
             by_evaluator.setdefault(row["evaluator"]["identifier"], []).append(row)
@@ -398,20 +531,27 @@ class _LangfuseBenchmarkReporter:
             metadata = self._metadata(
                 evaluator_rows, source_trace_id, evaluator_rows[0]["evaluator"]
             )
-            for name, value in self._score_values(evaluator_rows).items():
-                self.client.create_score(
-                    trace_id=source_trace_id,
-                    observation_id=observer.evaluator_observation_id,
-                    name=name,
-                    value=value,
-                    config_id=(self.config.langfuse.score_config_ids or {}).get(name),
-                    score_id=(
-                        f"{self.benchmark_run_id}:{source_trace_id}:{evaluator_id}:{name}"
-                    ),
-                    data_type="NUMERIC",
-                    metadata=metadata,
-                    timestamp=self.score_timestamp,
-                )
+            score_values = self._score_values(evaluator_rows)
+            self._write_evaluator_scores(
+                writer,
+                source_trace_id,
+                observer.evaluator_observation_id,
+                evaluator_rows,
+                metadata,
+                score_values,
+            )
+            writer.end_span(
+                trace_id=source_trace_id,
+                observation_id=observer.evaluator_observation_id,
+                output_data=self._evaluator_output(evaluator_rows, score_values),
+            )
+        chain_id = self._source_chain_ids.pop(source_trace_id, None)
+        if chain_id:
+            writer.end_span(
+                trace_id=source_trace_id,
+                observation_id=chain_id,
+                output_data={"benchmark_run_id": self.benchmark_run_id, "status": "completed"},
+            )
 
     def _record_as_separate_trace(self, rows: list[dict[str, Any]]) -> None:
         from langfuse import propagate_attributes
@@ -451,7 +591,9 @@ class _LangfuseBenchmarkReporter:
                     )
 
     def flush(self) -> None:
-        if self.client:
+        if self.config.langfuse.mode == "source_trace" and self._source_trace_writer:
+            self._source_trace_writer.flush()
+        elif self.client:
             self.client.flush()
 
 

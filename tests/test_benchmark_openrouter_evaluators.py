@@ -1,7 +1,6 @@
 import importlib.util
 import asyncio
 from pathlib import Path
-from contextlib import contextmanager
 from types import SimpleNamespace
 
 from evaluation.openrouter_benchmark import BenchmarkConfig
@@ -66,22 +65,33 @@ def test_local_export_mode_writes_one_overlay_for_all_evaluators(tmp_path):
 
 
 def test_source_trace_mode_nests_evaluators_and_scores_under_the_source_root(tmp_path, monkeypatch):
-    class Observation:
-        def __init__(self, identifier):
-            self.id = identifier
-
-    class Client:
+    class Writer:
         def __init__(self):
-            self.calls = []
+            self.spans = []
             self.scores = []
 
-        @contextmanager
-        def start_as_current_observation(self, **kwargs):
-            self.calls.append(kwargs)
-            yield Observation(f"observation-{len(self.calls)}")
+        def start_span(self, *, trace_id, parent_observation_id, name, input_data, metadata):
+            observation_id = f"observation-{len(self.spans) + 1}"
+            self.spans.append(
+                {
+                    "id": observation_id,
+                    "trace_id": trace_id,
+                    "parent_observation_id": parent_observation_id,
+                    "name": name,
+                    "input": input_data,
+                    "metadata": metadata,
+                }
+            )
+            return observation_id
+
+        def end_span(self, **_kwargs):
+            return None
 
         def create_score(self, **kwargs):
             self.scores.append(kwargs)
+
+        def flush(self):
+            return None
 
     config_path = tmp_path / "benchmark.json"
     config_path.write_text(
@@ -95,7 +105,8 @@ def test_source_trace_mode_nests_evaluators_and_scores_under_the_source_root(tmp
     reporter = runner._LangfuseBenchmarkReporter(
         BenchmarkConfig.from_json(config_path), "run-1", tmp_path
     )
-    reporter.client = client = Client()
+    writer = Writer()
+    reporter._source_trace_writer = writer
     rows = [
         {
             "source_trace_id": "trace-1",
@@ -129,48 +140,159 @@ def test_source_trace_mode_nests_evaluators_and_scores_under_the_source_root(tmp
 
     reporter.record(rows)
 
-    assert client.calls[0]["name"] == "external_benchmark_evaluation"
-    assert client.calls[0]["trace_context"] == {
-        "trace_id": "trace-1",
-        "parent_span_id": "root-1",
-    }
-    assert [call["name"] for call in client.calls[1:]] == [
-        "judge-a",
-        "geval",
-        "judge-b",
-        "fables",
+    assert [(span["name"], span["parent_observation_id"]) for span in writer.spans] == [
+        ("external_benchmark_evaluation", "root-1"),
+        ("judge-a", "observation-1"),
+        ("geval", "observation-2"),
+        ("judge-b", "observation-1"),
+        ("fables", "observation-4"),
     ]
-    assert {(score["name"], score["observation_id"]) for score in client.scores} == {
+    assert {(score["name"], score["observation_id"]) for score in writer.scores} == {
         ("geval_coherence_normalized", "observation-2"),
         ("fables_faithfulness", "observation-4"),
     }
 
 
+def test_source_trace_mode_uses_explicit_ingestion_parents_not_sdk_trace_context(
+    tmp_path, monkeypatch
+):
+    """Keep the source trace name intact when benchmarking its child observations."""
+
+    class LegacySdkClient:
+        def start_as_current_observation(self, **_kwargs):
+            raise AssertionError("source_trace must not use SDK trace_context")
+
+    class IngestionWriter:
+        def __init__(self):
+            self.spans = []
+            self.generations = []
+            self.scores = []
+
+        def start_span(self, *, trace_id, parent_observation_id, name, input_data, metadata):
+            observation_id = f"ingested-{len(self.spans) + 1}"
+            self.spans.append(
+                {
+                    "id": observation_id,
+                    "trace_id": trace_id,
+                    "parent_observation_id": parent_observation_id,
+                    "name": name,
+                    "input": input_data,
+                    "metadata": metadata,
+                }
+            )
+            return observation_id
+
+        def end_span(self, **_kwargs):
+            return None
+
+        def log_generation(self, **kwargs):
+            self.generations.append(kwargs)
+
+        def create_score(self, **kwargs):
+            self.scores.append(kwargs)
+
+        def flush(self):
+            return None
+
+    config_path = tmp_path / "benchmark.json"
+    config_path.write_text(
+        '{"evaluators":[{"id":"judge-a","model":"model-a"}],'
+        '"langfuse":{"enabled":true,"mode":"source_trace"}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "test-public")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "test-secret")
+    runner = _load_runner_module()
+    reporter = runner._LangfuseBenchmarkReporter(
+        BenchmarkConfig.from_json(config_path), "run-1", tmp_path
+    )
+    writer = IngestionWriter()
+    reporter.client = LegacySdkClient()
+    reporter._source_trace_writer = writer
+    sample = SimpleNamespace(
+        trace_id="trace-1",
+        source_observation_id="critic-1",
+        source_root_observation_id="root-1",
+    )
+
+    observers = reporter.prepare_source_trace_observers({"geval": [sample]})
+    observers[("trace-1", "judge-a")].log_generation(
+        name="geval_clarity",
+        model="model-a",
+        input_text="story",
+        output_text="score",
+    )
+
+    assert [(span["name"], span["parent_observation_id"]) for span in writer.spans] == [
+        ("external_benchmark_evaluation", "root-1"),
+        ("judge-a", "ingested-1"),
+    ]
+    assert writer.generations[0]["parent_observation_id"] == "ingested-2"
+
+
+def test_ingestion_writer_sends_benchmark_scores_to_the_underlying_sdk_client():
+    class SdkClient:
+        def __init__(self):
+            self.scores = []
+
+        def create_score(self, **kwargs):
+            self.scores.append(kwargs)
+
+    class LangfuseWrapper:
+        def __init__(self):
+            self.client = SdkClient()
+
+    runner = _load_runner_module()
+    client = LangfuseWrapper()
+    writer = runner._BenchmarkIngestionWriter(client)
+
+    writer.create_score(
+        trace_id="trace-1",
+        observation_id="evaluator-1",
+        name="geval_coherence_normalized",
+        value=0.8,
+        config_id="config-1",
+        score_id="score-1",
+        data_type="NUMERIC",
+        metadata={"evaluator_id": "judge-a"},
+        timestamp="2026-10-04T00:00:00Z",
+    )
+
+    assert client.client.scores[0]["config_id"] == "config-1"
+    assert client.client.scores[0]["score_id"] == "score-1"
+
+
 def test_source_trace_observer_records_native_evaluator_processes_under_its_model():
     """Removing the observer must hide the metric process tree, not only its scores."""
 
-    class Observation:
-        def __init__(self, identifier):
-            self.id = identifier
-            self.output = None
-
-        def update(self, *, output=None, **_kwargs):
-            self.output = output
-
-    class Client:
+    class Writer:
         def __init__(self):
-            self.calls = []
+            self.spans = []
+            self.generations = []
+            self.ended = []
 
-        @contextmanager
-        def start_as_current_observation(self, **kwargs):
-            observation = Observation(f"observation-{len(self.calls) + 1}")
-            self.calls.append({"kwargs": kwargs, "observation": observation})
-            yield observation
+        def start_span(self, *, trace_id, parent_observation_id, name, input_data, metadata):
+            observation_id = f"observation-{len(self.spans) + 1}"
+            self.spans.append(
+                {
+                    "id": observation_id,
+                    "trace_id": trace_id,
+                    "parent_observation_id": parent_observation_id,
+                    "name": name,
+                }
+            )
+            return observation_id
+
+        def end_span(self, **kwargs):
+            self.ended.append(kwargs)
+
+        def log_generation(self, **kwargs):
+            self.generations.append(kwargs)
 
     runner = _load_runner_module()
-    client = Client()
+    writer = Writer()
     observer = runner._BenchmarkEvaluatorObserver(
-        client=client,
+        writer=writer,
         trace_id="trace-1",
         evaluator_observation_id="judge-1",
     )
@@ -195,22 +317,15 @@ def test_source_trace_observer_records_native_evaluator_processes_under_its_mode
     observer.end_span(fables_span, output_data={"fables_faithfulness": 1.0})
     observer.end_span(ragas_span, output_data={"ragas_answer_relevancy": 0.5})
 
-    calls = {call["kwargs"]["name"]: call for call in client.calls}
-    assert "end_on_exit" not in calls["ragas_evaluation"]["kwargs"]
-    assert calls["ragas_evaluation"]["kwargs"]["trace_context"] == {
-        "trace_id": "trace-1",
-        "parent_span_id": "judge-1",
-    }
-    assert calls["ragas_answer_relevancy"]["kwargs"]["trace_context"]["parent_span_id"] == (
-        calls["ragas_evaluation"]["observation"].id
-    )
-    assert calls["fables_faithfulness"]["kwargs"]["trace_context"]["parent_span_id"] == (
-        calls["ragas_evaluation"]["observation"].id
-    )
-    assert calls["fables_extract_claims"]["kwargs"]["trace_context"]["parent_span_id"] == (
-        calls["fables_faithfulness"]["observation"].id
-    )
-    assert calls["fables_faithfulness"]["observation"].output == {"fables_faithfulness": 1.0}
+    assert [(span["name"], span["parent_observation_id"]) for span in writer.spans] == [
+        ("ragas_evaluation", "judge-1"),
+        ("fables_faithfulness", "observation-1"),
+    ]
+    assert [generation["parent_observation_id"] for generation in writer.generations] == [
+        "observation-1",
+        "observation-2",
+    ]
+    assert writer.ended[0]["output_data"] == {"fables_faithfulness": 1.0}
 
 
 def test_source_trace_mode_prepares_one_live_observer_per_model_and_reuses_it_for_scores(
@@ -218,23 +333,31 @@ def test_source_trace_mode_prepares_one_live_observer_per_model_and_reuses_it_fo
 ):
     """A later score write must reuse the live model node, not create a duplicate node."""
 
-    class Observation:
-        def __init__(self, identifier):
-            self.id = identifier
-
-    class Client:
+    class Writer:
         def __init__(self):
-            self.calls = []
+            self.spans = []
             self.scores = []
 
-        @contextmanager
-        def start_as_current_observation(self, **kwargs):
-            observation = Observation(f"observation-{len(self.calls) + 1}")
-            self.calls.append({"kwargs": kwargs, "observation": observation})
-            yield observation
+        def start_span(self, *, trace_id, parent_observation_id, name, input_data, metadata):
+            observation_id = f"observation-{len(self.spans) + 1}"
+            self.spans.append(
+                {
+                    "id": observation_id,
+                    "trace_id": trace_id,
+                    "parent_observation_id": parent_observation_id,
+                    "name": name,
+                }
+            )
+            return observation_id
+
+        def end_span(self, **_kwargs):
+            return None
 
         def create_score(self, **kwargs):
             self.scores.append(kwargs)
+
+        def flush(self):
+            return None
 
     config_path = tmp_path / "benchmark.json"
     config_path.write_text(
@@ -249,7 +372,8 @@ def test_source_trace_mode_prepares_one_live_observer_per_model_and_reuses_it_fo
     reporter = runner._LangfuseBenchmarkReporter(
         BenchmarkConfig.from_json(config_path), "run-1", tmp_path
     )
-    reporter.client = client = Client()
+    writer = Writer()
+    reporter._source_trace_writer = writer
     sample = SimpleNamespace(
         trace_id="trace-1",
         source_observation_id="critic-1",
@@ -277,12 +401,12 @@ def test_source_trace_mode_prepares_one_live_observer_per_model_and_reuses_it_fo
     )
 
     assert set(observers) == {("trace-1", "judge-a"), ("trace-1", "judge-b")}
-    assert [call["kwargs"]["name"] for call in client.calls] == [
+    assert [span["name"] for span in writer.spans] == [
         "external_benchmark_evaluation",
         "judge-a",
         "judge-b",
     ]
-    assert client.scores[0]["observation_id"] == observers[("trace-1", "judge-a")].evaluator_observation_id
+    assert writer.scores[0]["observation_id"] == observers[("trace-1", "judge-a")].evaluator_observation_id
 
 
 def test_evaluate_target_passes_prepared_observer_into_native_geval(tmp_path, monkeypatch):
