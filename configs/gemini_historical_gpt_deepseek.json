@@ -5,8 +5,8 @@
   "metrics": ["geval", "fables", "ragas"],
   "execution": {"parallel": true, "max_concurrency": 2},
   "langfuse": {
-    "enabled": false,
-    "mode": "local_export",
+    "enabled": true,
+    "mode": "source_trace",
     "session_id_template": "benchmark:{source_trace_id}",
     "trace_name_prefix": "BenchmarkEvaluation",
     "score_config_ids": {}
