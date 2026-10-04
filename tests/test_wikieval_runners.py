@@ -83,6 +83,30 @@ def test_agentic_checkpoint_retries_rows_without_external_evaluation(tmp_path: P
     assert done == {(1, "id")}
 
 
+def test_agentic_resume_reuses_story_when_only_external_evaluation_failed(tmp_path: Path):
+    runner = _load("wikieval_api_runner_pending", ROOT / "scripts" / "run_wikieval_api_benchmark.py")
+    checkpoint = tmp_path / "results.jsonl"
+    checkpoint.write_text(
+        json.dumps(
+            {
+                "item_idx": 0,
+                "language": "id",
+                "status": "completed",
+                "final_story": "already generated",
+                "trace_id": "trace-0",
+                "external_evaluation_status": "failed",
+            }
+        )
+        + "\n"
+    )
+
+    results, _done = runner._read_checkpoint(checkpoint)
+
+    assert runner._pending_external_evaluations(results) == {
+        (0, "id"): results[0],
+    }
+
+
 def test_baseline_runner_accepts_model_and_provider_options():
     runner = _load("baseline_runner", ROOT / "baseline" / "run_baseline.py")
     parser = runner.build_argument_parser()

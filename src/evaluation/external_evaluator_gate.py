@@ -7,10 +7,12 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 from typing import Any, Iterable
 
 
 REQUIRED_METRICS = ("geval", "fables", "ragas")
+_SOURCE_ROOT_NAMES = {"StoryGenerationWorkflow", "BaselineWikiEvalWorkflow"}
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -53,8 +55,35 @@ def validate_external_evaluator_results(
     )
 
 
-def export_observations(trace_id: str, destination: Path) -> None:
-    """Export only one completed source trace to the JSONL format benchmark uses."""
+def has_source_workflow_root(rows: Iterable[dict[str, Any]]) -> bool:
+    """Return whether the exported trace contains its evaluatable root."""
+    return any(
+        str(row.get("id") or "").strip()
+        and not str(row.get("parentObservationId") or row.get("parent_observation_id") or "").strip()
+        and row.get("name") in _SOURCE_ROOT_NAMES
+        for row in rows
+    )
+
+
+def _fetch_observations(client: Any, trace_id: str) -> list[dict[str, Any]]:
+    page = 1
+    rows: list[dict[str, Any]] = []
+    while True:
+        response = client.api.observations.get_many(trace_id=trace_id, limit=100, page=page)
+        rows.extend(_to_jsonable(observation) for observation in response.data or [])
+        if page >= response.meta.total_pages:
+            return rows
+        page += 1
+
+
+def export_observations(
+    trace_id: str,
+    destination: Path,
+    *,
+    max_wait_seconds: float = 120.0,
+    poll_interval_seconds: float = 2.0,
+) -> None:
+    """Wait for and export one source trace that has an evaluatable root."""
     from langfuse import Langfuse
     from settings import ObservabilityConfig
 
@@ -65,15 +94,16 @@ def export_observations(trace_id: str, destination: Path) -> None:
         raise ValueError("Langfuse credentials are required for external evaluator gating")
 
     client = Langfuse(public_key=public_key, secret_key=secret_key, host=host)
-    page = 1
-    rows: list[dict[str, Any]] = []
+    deadline = time.monotonic() + max_wait_seconds
     while True:
-        response = client.api.observations.get_many(trace_id=trace_id, limit=100, page=page)
-        for observation in response.data or []:
-            rows.append(_to_jsonable(observation))
-        if page >= response.meta.total_pages:
+        rows = _fetch_observations(client, trace_id)
+        if has_source_workflow_root(rows):
             break
-        page += 1
+        if time.monotonic() >= deadline:
+            raise RuntimeError(
+                f"source trace root was not available after {max_wait_seconds:.0f}s: {trace_id}"
+            )
+        time.sleep(min(poll_interval_seconds, max(0.0, deadline - time.monotonic())))
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
@@ -87,12 +117,13 @@ def run_external_evaluator_gate(
     config_path: Path,
     workspace_root: Path,
     output_dir: Path,
+    artifact_root: Path | None = None,
 ) -> tuple[str, ...]:
     """Append three evaluator branches to one source trace and enforce completion."""
     evaluator_ids = evaluator_ids_from_config(config_path)
     observations_dir = output_dir / "observations" / trace_id
     export_observations(trace_id, observations_dir / f"{trace_id}.jsonl")
-    benchmark_dir = output_dir / "external_evaluators" / trace_id
+    benchmark_dir = (artifact_root or output_dir / "external_evaluators") / trace_id
     command = [
         sys.executable,
         str(workspace_root / "scripts" / "benchmark_openrouter_evaluators.py"),

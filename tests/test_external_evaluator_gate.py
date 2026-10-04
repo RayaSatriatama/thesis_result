@@ -54,3 +54,39 @@ def test_rejects_config_without_exactly_three_evaluators(tmp_path: Path):
         assert "exactly three" in str(exc)
     else:
         raise AssertionError("invalid evaluator config was accepted")
+
+
+def test_identifies_a_source_workflow_root_observation():
+    from evaluation.external_evaluator_gate import has_source_workflow_root
+
+    rows = [
+        {
+            "id": "child",
+            "traceId": "trace-1",
+            "parentObservationId": "root",
+            "name": "writer_agent",
+        },
+        {
+            "id": "root",
+            "traceId": "trace-1",
+            "parentObservationId": None,
+            "name": "StoryGenerationWorkflow",
+        },
+    ]
+
+    assert has_source_workflow_root(rows)
+
+
+def test_rejects_observations_without_a_source_workflow_root():
+    from evaluation.external_evaluator_gate import has_source_workflow_root
+
+    rows = [
+        {
+            "id": "child",
+            "traceId": "trace-1",
+            "parentObservationId": "root",
+            "name": "writer_agent",
+        }
+    ]
+
+    assert not has_source_workflow_root(rows)

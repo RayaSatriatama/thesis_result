@@ -131,6 +131,22 @@ def _append_checkpoint(path: Path, result: dict[str, Any]) -> None:
         handle.write(json.dumps(result, ensure_ascii=False) + "\n")
 
 
+def _pending_external_evaluations(
+    results: Iterable[dict[str, Any]],
+) -> dict[tuple[int, str], dict[str, Any]]:
+    """Keep the latest generated story that still needs external evaluation."""
+    pending: dict[tuple[int, str], dict[str, Any]] = {}
+    for row in results:
+        if "item_idx" not in row or "language" not in row:
+            continue
+        key = (int(row["item_idx"]), str(row["language"]))
+        if row.get("status") == "completed" and row.get("external_evaluation_status") == "completed":
+            pending.pop(key, None)
+        elif row.get("final_story") and row.get("trace_id"):
+            pending[key] = row
+    return pending
+
+
 def _request_story(
     *,
     base_url: str,
@@ -165,10 +181,48 @@ def run(args: argparse.Namespace) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = out_dir / "results.jsonl"
     results, done = _read_checkpoint(checkpoint_path)
+    pending = _pending_external_evaluations(results)
     api_key = args.api_key or os.getenv("API_KEY", "")
+    retry_artifact_root = out_dir / f"external_evaluator_retries_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
 
     for item_idx, row, language_code in _selected_runs(rows, languages, args.start, args.limit):
-        if (item_idx, language_code) in done:
+        key = (item_idx, language_code)
+        if key in done:
+            continue
+        prior = pending.get(key)
+        if prior:
+            result = dict(prior)
+            result["external_evaluation_retry_started_at"] = datetime.now(timezone.utc).isoformat()
+            try:
+                from evaluation.external_evaluator_gate import run_external_evaluator_gate
+
+                evaluator_ids = run_external_evaluator_gate(
+                    trace_id=str(result["trace_id"]),
+                    config_path=Path(args.external_evaluator_config),
+                    workspace_root=ROOT,
+                    output_dir=out_dir,
+                    artifact_root=retry_artifact_root,
+                )
+            except Exception as exc:
+                result["external_evaluation_status"] = "failed"
+                result["external_evaluation_error"] = repr(exc)
+            else:
+                prior_error = result.pop("error", None)
+                if prior_error:
+                    result["external_evaluation_previous_error"] = prior_error
+                result["external_evaluator_ids"] = list(evaluator_ids)
+                result["external_evaluation_status"] = "completed"
+                result.pop("external_evaluation_error", None)
+            result["finished_at"] = datetime.now(timezone.utc).isoformat()
+            _append_checkpoint(checkpoint_path, result)
+            results.append(result)
+            if result.get("external_evaluation_status") == "completed":
+                done.add(key)
+            (out_dir / "results.json").write_text(
+                json.dumps(results, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            if args.sleep_seconds > 0:
+                time.sleep(args.sleep_seconds)
             continue
         language = "English" if language_code == "en" else "Indonesian"
         payload = build_request_payload(
