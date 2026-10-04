@@ -37,9 +37,10 @@ Langfuse:
 
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from loguru import logger
 
@@ -82,6 +83,7 @@ def get_llm(
     model_name: Optional[str] = None,
     *,
     provider: Optional[str] = None,
+    openrouter_provider_preferences: Optional[Mapping[str, Any]] = None,
 ) -> BaseChatModel:
     """
     Buat instance LLM berdasarkan LLM_PROVIDER (atau argumen `provider`).
@@ -90,6 +92,9 @@ def get_llm(
         temperature : Suhu sampling (0.0 = deterministik, 1.0 = kreatif).
         model_name  : Nama model yang dipakai; jika None pakai default provider.
         provider    : Override provider sementara (jarang dipakai langsung).
+        openrouter_provider_preferences: Objek ``provider`` OpenRouter yang
+            dikirim apa adanya pada request. Hanya valid untuk OpenRouter,
+            misalnya ``{"require_parameters": True}``.
 
     Returns:
         BaseChatModel yang kompatibel dengan LangChain.
@@ -235,6 +240,21 @@ def get_llm(
             kwargs["temperature"] = temperature
         if default_headers:
             kwargs["default_headers"] = default_headers
+        if openrouter_provider_preferences is None:
+            raw_preferences = os.getenv("OPENROUTER_PROVIDER_PREFERENCES", "").strip()
+            if raw_preferences:
+                try:
+                    openrouter_provider_preferences = json.loads(raw_preferences)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        "OPENROUTER_PROVIDER_PREFERENCES must be a JSON object"
+                    ) from exc
+                if not isinstance(openrouter_provider_preferences, dict):
+                    raise ValueError("OPENROUTER_PROVIDER_PREFERENCES must be a JSON object")
+        if openrouter_provider_preferences:
+            kwargs["extra_body"] = {
+                "provider": dict(openrouter_provider_preferences),
+            }
 
         return ChatOpenAI(**kwargs)
 

@@ -24,6 +24,10 @@ Penelitian ini menganalisis kinerja sistem hibrida **Agentic AI** dan **LightRAG
 
 Dokumentasi lengkap proyek dapat diakses di [docs/index.md](docs/index.md).
 
+Evaluator OpenRouter yang terpisah dari model generator dan prosedur benchmark
+keluaran Gemini yang sudah ada tersedia pada [konfigurasi evaluator dan
+benchmark](docs/configuration.md#peran-evaluator-terpisah).
+
 - **Arsitektur Agentic AI (alir penuh: perencanaan → riset → penulisan → kritik & revisi):** [docs/architecture/pengembangan_arsitektur_agentic_ai.md](docs/architecture/pengembangan_arsitektur_agentic_ai.md) — gambaran orkestrasi, `StoryState`, routing revisi; detail per agen dalam file terpisah di [docs/architecture/agents/](docs/architecture/agents/) (mis. [agent_critic.md](docs/architecture/agents/agent_critic.md)). *English summary included in-doc.*
 - **Diagram jaringan agen lengkap (batch + interaktif, revisi, HITL, sub-agen kritik; tanpa tools):** [docs/architecture/agent_graph_diagrams.md](docs/architecture/agent_graph_diagrams.md).
 - **LightRAG (spesifikasi & WikiEval):** [docs/architecture/lightrag/README.md](docs/architecture/lightrag/README.md) — indeks ke spesifikasi EN/ID dan log pengembangan injeksi; integrasi panjang tetap di [docs/architecture/lightrag_integration.md](docs/architecture/lightrag_integration.md).
@@ -148,7 +152,7 @@ python -m venv .venv
 # Linux/Mac:
 source .venv/bin/activate
 
-# Instal dependensi menggunakan uv pip (sesuai best practice)
+# Instal dependensi menggunakan uv pip, termasuk DeepEval untuk G-Eval
 pip install uv
 uv pip install -r requirements.txt
 
@@ -156,6 +160,12 @@ uv pip install -r requirements.txt
 cp .env.example .env
 # Buka file .env dan masukkan API Keys Anda
 ```
+
+Benchmark evaluator OpenRouter memakai file JSON eksplisit. Evaluator berjalan
+paralel secara default. Export historis menghasilkan overlay trace lokal yang
+editable dan tidak mengubah trace Langfuse lama. Pengiriman ke Langfuse hanya
+aktif bila `langfuse.enabled` serta mode penulisan eksplisit diaktifkan. Lihat
+[`docs/configuration.md`](docs/configuration.md) untuk contoh konfigurasi.
 
 ### 3. Cara Menjalankan Proyek
 

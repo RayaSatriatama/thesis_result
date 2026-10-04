@@ -125,12 +125,27 @@ def _parse_fables_verdict_llm(raw: str) -> str:
 class RagasEvaluator:
     """Runs RAGAS (AR + CR) and FABLES faithfulness evaluation via OpenRouter."""
 
-    def __init__(self, ragas_llm, embeddings, openai_client, model_name: str, langfuse):
+    def __init__(
+        self,
+        ragas_llm,
+        embeddings,
+        openai_client,
+        model_name: str,
+        langfuse,
+        openrouter_provider_preferences: Optional[Dict] = None,
+    ):
         self._ragas_llm = ragas_llm
         self._ragas_embeddings = embeddings
         self._ragas_openai_client = openai_client
         self._ragas_model_name = model_name
         self.langfuse = langfuse
+        self._openrouter_provider_preferences = dict(openrouter_provider_preferences or {})
+
+    def _openrouter_request_kwargs(self) -> Dict:
+        """Attach explicit OpenRouter routing only when a caller configured it."""
+        if not self._openrouter_provider_preferences:
+            return {}
+        return {"extra_body": {"provider": self._openrouter_provider_preferences}}
 
     # -------------------------------------------------------------------------
     # RAGAS (Answer Relevancy + Context Relevance)
@@ -395,6 +410,7 @@ class RagasEvaluator:
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=16384,
                     temperature=0.0,
+                    **self._openrouter_request_kwargs(),
                 ),
                 timeout=90,
             )
@@ -481,6 +497,7 @@ class RagasEvaluator:
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=256,
                     temperature=0.0,
+                    **self._openrouter_request_kwargs(),
                 ),
                 timeout=60,
             )

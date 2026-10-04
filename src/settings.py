@@ -6,6 +6,7 @@ Konfigurasi Terpusat untuk AI Pembelajaran Berbasis Cerita
 Semua nilai yang dapat dikonfigurasi dalam satu tempat
 """
 
+import json
 import os
 from dotenv import load_dotenv
 from loguru import logger
@@ -100,6 +101,51 @@ class LLMProviderConfig:
             "ollama":          "llama3.2",
         }
         return defaults.get(cls.PROVIDER, "gemini-2.5-flash")
+
+
+class ResearchConfig:
+    """Konfigurasi untuk riset dengan provider eksternal."""
+
+    @staticmethod
+    def openrouter_web_search_enabled() -> bool:
+        """Aktifkan server tool web OpenRouter hanya jika diminta."""
+        return os.getenv("OPENROUTER_ENABLE_WEB_SEARCH", "true").lower() == "true"
+
+
+class EvaluatorConfig:
+    """Optional judge role, independent from the generation model configuration.
+
+    Empty provider/model values intentionally leave existing application behavior
+    unchanged. Benchmark commands do not read this class: they require an
+    explicit JSON configuration instead.
+    """
+
+    @staticmethod
+    def provider() -> str:
+        return os.getenv("EVALUATOR_PROVIDER", "").strip()
+
+    @staticmethod
+    def model() -> str:
+        return os.getenv("EVALUATOR_MODEL", "").strip()
+
+    @staticmethod
+    def ragas_model() -> str:
+        return os.getenv("EVALUATOR_RAGAS_MODEL", "").strip()
+
+    @staticmethod
+    def openrouter_provider_preferences() -> dict:
+        raw = os.getenv("EVALUATOR_OPENROUTER_PROVIDER_PREFERENCES", "").strip()
+        if not raw:
+            return {}
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "EVALUATOR_OPENROUTER_PROVIDER_PREFERENCES must be a JSON object"
+            ) from exc
+        if not isinstance(value, dict):
+            raise ValueError("EVALUATOR_OPENROUTER_PROVIDER_PREFERENCES must be a JSON object")
+        return value
 
 
 # =============================================================================

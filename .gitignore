@@ -61,6 +61,7 @@ generated_images/
 models/
 checkpoints/
 .cache/
+.deepeval/
 lightrag_storage/
 rag_storage/
 

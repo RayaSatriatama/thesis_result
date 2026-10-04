@@ -10,6 +10,140 @@ Berikut adalah penjelasan lengkap dari semua parameter dan *settings* yang terse
 |-----------|-----------|------------------|
 | `LLM_PROVIDER` | Menentukan platform LLM yang akan digunakan oleh agen (Planner, Writer, Critic, dsb). Pilihan: `google_vertexai`, `google_genai`, `openai`, `openrouter`, `deepseek`, `glm`, `ollama` | `google_vertexai` |
 | `LLM_MODEL` | Nama model spesifik yang akan dipanggil. Jika dikosongkan, akan memakai model default dari masing-masing *provider*. | `gemini-2.5-flash` |
+| `OPENROUTER_ENABLE_WEB_SEARCH` | Menyalakan server tool web saat `LLM_PROVIDER=openrouter`. Set `false` untuk benchmark gratis; LightRAG tetap digunakan. | `true` |
+
+### Peran evaluator terpisah
+
+Generator dan evaluator dapat memakai model berbeda. Pengaturan berikut hanya
+mengubah `CriticAgent`; seluruh agen generator tetap memakai `LLM_PROVIDER` dan
+`LLM_MODEL`.
+
+| Variabel | Fungsi |
+|---|---|
+| `EVALUATOR_PROVIDER` | Provider evaluator, misalnya `openrouter`. Kosong berarti Critic memakai provider global. |
+| `EVALUATOR_MODEL` | Slug model evaluator untuk educational, coherence, dan G-Eval. Kosong berarti mengikuti model Critic sebelumnya. |
+| `EVALUATOR_RAGAS_MODEL` | Slug evaluator khusus RAGAS/FABLES. Kosong memakai `EVALUATOR_MODEL` jika providernya OpenRouter. |
+| `EVALUATOR_OPENROUTER_PROVIDER_PREFERENCES` | Objek JSON `provider` OpenRouter untuk routing evaluator. |
+
+Contoh runtime evaluator terpisah:
+
+```dotenv
+LLM_PROVIDER=openrouter
+LLM_MODEL=google/gemini-2.5-flash
+EVALUATOR_PROVIDER=openrouter
+EVALUATOR_MODEL=provider/model-slug
+EVALUATOR_RAGAS_MODEL=provider/model-slug
+EVALUATOR_OPENROUTER_PROVIDER_PREFERENCES={"allow_fallbacks":false,"require_parameters":true,"data_collection":"deny"}
+```
+
+Objek `provider` diteruskan apa adanya ke request OpenRouter. Field yang
+didukung meliputi `order`, `allow_fallbacks`, `require_parameters`,
+`data_collection`, `zdr`, `only`, `ignore`, `quantizations`, `sort`, batas
+harga, serta preferensi throughput atau latency. Untuk hasil benchmark, set
+`allow_fallbacks` ke `false`; dengan begitu model provider yang benar-benar
+menjawab tidak berubah diam-diam.
+
+Untuk generator utama, gunakan `OPENROUTER_PROVIDER_PREFERENCES` dengan format
+objek yang sama. Pengaturan ini dipakai hanya saat `LLM_PROVIDER=openrouter`.
+Contoh `{"only":["openai"],"allow_fallbacks":false,"require_parameters":true}`
+memaksa `openai/gpt-4o-mini` ke endpoint OpenAI tanpa fallback.
+
+### Benchmark evaluator pada keluaran Gemini yang sudah ada
+
+`scripts/benchmark_openrouter_evaluators.py` membaca observation JSONL dan
+menulis artefak baru. Tiga kelompok hasilnya adalah `geval`, `fables`, dan
+`ragas`. G-Eval membaca pertanyaan serta cerita final dari observasi
+`critic_agent`. RAGAS dan FABLES memakai cerita serta konteks yang sama dari
+trace RAGAS. Saat keduanya dipilih, runner memanggil `RagasEvaluator.run()`
+satu kali, lalu menulis skor RAGAS dan FABLES yang memang sudah dikembalikan
+oleh evaluator tersebut. Tidak ada pipeline FABLES kedua dan skrip tidak
+menimpa ekspor sumber. Pelaporan ke Langfuse hanya terjadi bila
+`langfuse.enabled` diaktifkan.
+
+Buat konfigurasi eksplisit, dengan slug model tetap. Jangan gunakan
+`openrouter/free`, karena router tersebut memilih model berbeda antar request.
+
+Eksekusi evaluator berjalan paralel secara default, dengan paling banyak tiga
+model evaluator aktif pada saat yang sama. Atur `execution.parallel` menjadi
+`false` untuk menjalankan model satu per satu. Pelaporan Langfuse sepenuhnya
+opt-in melalui `langfuse.enabled`; saat `false`, runner tidak membuat trace atau
+score baru di Langfuse.
+
+Untuk export historis, mode default `local_export` tidak menulis ke Langfuse.
+Runner membuat `trace_overlays/<source-trace-id>.json` di direktori output.
+Artefak ini menempatkan `external_benchmark_evaluation` sebagai anak dari root
+`StoryGenerationWorkflow`; setiap evaluator menjadi anaknya, dan `geval`,
+`fables`, serta `ragas` menjadi anak evaluator. Dengan demikian tiga model
+evaluator dapat dibandingkan tanpa mengubah atau membuat ulang trace lama.
+
+Untuk workflow baru, pilih `source_trace` dan aktifkan `langfuse.enabled`.
+Mode ini hanya dipakai saat root observation ID dari `StoryGenerationWorkflow`
+tersedia. Score ditempelkan ke observation evaluator, sehingga nama score yang
+sama tidak bertumpuk pada root trace. `separate_trace` tersedia hanya untuk
+kompatibilitas dengan format lama dan tidak direkomendasikan untuk benchmark
+yang perlu ditelusuri dari workflow asal.
+
+```json
+{
+  "source": {"observations_dir": "Eval_Data/Observations"},
+  "metrics": ["geval", "fables", "ragas"],
+  "execution": {"parallel": true, "max_concurrency": 3},
+  "langfuse": {
+    "enabled": false,
+    "mode": "local_export",
+    "session_id_template": "benchmark:{source_trace_id}",
+    "trace_name_prefix": "BenchmarkEvaluation",
+    "score_config_ids": {
+      "geval_coherence_normalized": "langfuse-score-config-id",
+      "fables_faithfulness": "langfuse-score-config-id",
+      "ragas_standard_faithfulness": "langfuse-score-config-id",
+      "ragas_answer_relevancy": "langfuse-score-config-id",
+      "ragas_context_relevance": "langfuse-score-config-id"
+    }
+  },
+  "ragas": {
+    "embedding_model": "replace-with-an-explicit-embedding-model-slug",
+    "require_free": true
+  },
+  "evaluators": [
+    {
+      "id": "free-judge",
+      "model": "replace-with-current-free-model-slug",
+      "temperature": 0.0,
+      "require_free": true,
+      "provider_preferences": {
+        "allow_fallbacks": false,
+        "require_parameters": true,
+        "data_collection": "deny"
+      }
+    }
+  ]
+}
+```
+
+Mulai dengan prapenerbangan tanpa inferensi:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/benchmark_openrouter_evaluators.py \
+  --config benchmark.json --output-dir Eval_Data/BenchmarkRuns/free-judge-dry-run --dry-run
+```
+
+Prapenerbangan membaca katalog model OpenRouter saat itu dan menolak model
+evaluator maupun embedding yang tidak gratis saat `require_free` bernilai
+`true`. `ragas.embedding_model` wajib eksplisit untuk RAGAS penuh, sehingga
+benchmark tidak dapat diam-diam menggunakan embedding default berbayar.
+Tambahkan `--smoke-tools --limit 1` hanya untuk menguji capability tools secara
+terpisah. Untuk evaluasi penuh, hilangkan `--dry-run`; hasilnya adalah
+`manifest.json`, `results.jsonl`, serta `trace_overlays/` di direktori output
+baru. Export sumber tetap tidak berubah.
+
+G-Eval memakai dependency `deepeval==3.9.2` dari `requirements.txt`; runner
+menulis baris gagal bila provider tidak mengembalikan skor. FABLES dapat
+dijalankan tanpa embedding bila dipilih sendiri, sedangkan RAGAS penuh
+memerlukan embedding. Jika model
+gratis tidak menyediakan endpoint dengan `data_collection: "deny"`, pilih
+`data_collection: "allow"` hanya untuk prompt uji non-sensitif dan catat
+keputusan tersebut di artefak benchmark.
 
 **Pengaturan Khusus per Provider:**
 - **Vertex AI**: Butuh `GOOGLE_CLOUD_PROJECT` dan `GOOGLE_CLOUD_LOCATION` (serta `credential.json` di root).

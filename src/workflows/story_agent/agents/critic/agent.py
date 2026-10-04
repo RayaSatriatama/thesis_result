@@ -18,7 +18,7 @@ from .eval_educational import EducationalEvaluator
 from .eval_coherence import CoherenceEvaluator
 from .eval_geval import GEvalEvaluator
 from .eval_ragas import RagasEvaluator, RAGAS_AVAILABLE
-from settings import ModelConfig, LanguageConfig, StoryConfig
+from settings import EvaluatorConfig, ModelConfig, LanguageConfig, StoryConfig
 from providers.llm_factory import get_llm
 
 try:
@@ -41,9 +41,17 @@ class CriticAgent:
     """
 
     def __init__(self, model_name: str = None, credentials=None, project=None):
-        self.model_name = model_name or ModelConfig.GEMINI_MODEL
+        evaluator_provider = EvaluatorConfig.provider() or None
+        evaluator_model = EvaluatorConfig.model()
+        self.model_name = evaluator_model or model_name or ModelConfig.GEMINI_MODEL
+        self._openrouter_provider_preferences = EvaluatorConfig.openrouter_provider_preferences()
         # Evaluator DeepEval (G-EVAL) & edukatif dkk default ke 0.0 (mengabaikan env)
-        self.llm = get_llm(temperature=0.0, model_name=self.model_name)
+        self.llm = get_llm(
+            temperature=0.0,
+            model_name=self.model_name,
+            provider=evaluator_provider,
+            openrouter_provider_preferences=self._openrouter_provider_preferences,
+        )
         self.langfuse = get_langfuse() if LANGFUSE_AVAILABLE else None
 
         self._educational_eval = EducationalEvaluator(self.llm, self.langfuse, self.model_name)
@@ -63,7 +71,11 @@ class CriticAgent:
 
             or_api_key = LLMProviderConfig.OPENROUTER_API_KEY or os.environ.get("OPENROUTER_API_KEY", "")
             or_base_url = LLMProviderConfig.OPENROUTER_BASE_URL or "https://openrouter.ai/api/v1"
-            ragas_model_name = os.environ.get("LLM_MODEL", "google/gemini-2.5-flash")
+            ragas_model_name = (
+                EvaluatorConfig.ragas_model()
+                or (self.model_name if evaluator_provider == "openrouter" else "")
+                or os.environ.get("LLM_MODEL", "google/gemini-2.5-flash")
+            )
             ragas_embed = os.environ.get("RAGAS_EMBED_MODEL", "google/gemini-embedding-001")
 
             if or_api_key:
@@ -97,6 +109,7 @@ class CriticAgent:
             openai_client=ragas_openai_client,
             model_name=ragas_model_name,
             langfuse=self.langfuse,
+            openrouter_provider_preferences=self._openrouter_provider_preferences,
         )
 
     # -------------------------------------------------------------------------

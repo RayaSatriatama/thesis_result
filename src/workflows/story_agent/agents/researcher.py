@@ -18,7 +18,7 @@ from loguru import logger
 import httpx
 from ..state import StoryState
 from ..prompts import get_registry
-from settings import ModelConfig, StoryConfig, LightRAGConfig, LanguageConfig
+from settings import ModelConfig, StoryConfig, LightRAGConfig, LanguageConfig, ResearchConfig
 import os
 import hashlib
 import httpx
@@ -121,7 +121,10 @@ class ResearchAgent:
             except Exception as _e:
                 logger.warning(f"[RISET::PENGATURAN] Gagal menyiapkan Google GenAI client: {_e}")
         elif not _is_google:
-            if LLMProviderConfig.PROVIDER == "openrouter":
+            if (
+                LLMProviderConfig.PROVIDER == "openrouter"
+                and ResearchConfig.openrouter_web_search_enabled()
+            ):
                 logger.info(
                     "[RISET::PENGATURAN] Menggunakan OpenRouter — pencarian web tersedia lewat OpenRouter Web Plugin."
                 )
@@ -375,7 +378,9 @@ class ResearchAgent:
                     tool_to_use = "web_search"
 
             # Web search (sesuai rencana atau "both")
-            if tool_to_use in ["web_search", "both"]:
+            if tool_to_use in ["web_search", "both"] and (
+                not self._is_openrouter or ResearchConfig.openrouter_web_search_enabled()
+            ):
                 tasks.append(self._search_web(item.question, language, theme))
                 task_meta.append({"type": "web", "question": item.question})
 
@@ -881,4 +886,3 @@ class ResearchAgent:
             asyncio.create_task(self._safe_ingest(to_ingest, theme))
 
         return {}
-
