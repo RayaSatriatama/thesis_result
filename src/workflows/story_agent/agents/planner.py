@@ -259,6 +259,7 @@ class PlannerAgent:
         story_length = state.get("story_length", "")
         language = state.get("language", "Indonesian")
         research_notes = state.get("research_notes", "")
+        requested_target_age = str(state.get("target_age", "") or "").strip()
 
         # Alur interaktif: supervisor_node selalu dijalankan lebih dulu; untuk cerita baru
         # keputusan umumnya «planning» — log ini memperjelas urutan di terminal.
@@ -329,7 +330,9 @@ class PlannerAgent:
 
             # Extract ALL data from unified result
             theme = result.theme
-            target_age = result.target_age
+            # An explicit API/request value is an experiment constraint. The
+            # planner may infer an age only when the caller left it blank.
+            target_age = requested_target_age or result.target_age
             learning_objectives = result.learning_objectives or ""
             story_style = result.story_style
             narrative_style = result.narrative_style
@@ -443,7 +446,7 @@ class PlannerAgent:
 
             # Fallback values
             theme = user_message
-            target_age = "15-18"
+            target_age = requested_target_age or "15-18"
             learning_objectives = ""
             story_style = "narrative" if is_en else "naratif"
             narrative_style = "mixed" if is_en else "campuran"
