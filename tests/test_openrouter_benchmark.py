@@ -386,6 +386,43 @@ def test_extract_geval_samples_reads_final_story_and_original_question():
     assert samples[0].story == "Cerita tentang penguapan dan hujan."
 
 
+def test_extract_geval_samples_recovers_agentic_story_and_question_from_ragas_fables():
+    rows = [
+        {
+            "id": "root-agentic",
+            "traceId": "trace-agentic",
+            "name": "StoryGenerationWorkflow",
+        },
+        {
+            "id": "critic-agentic",
+            "traceId": "trace-agentic",
+            "name": "critic_agent",
+            "input": {"theme": "Siklus air"},
+            "output": {"ragas_scores": {"geval_coherence": 4.2}},
+        },
+        {
+            "id": "ragas-context-agentic",
+            "traceId": "trace-agentic",
+            "name": "ragas_context_relevance",
+            "input": {"user_input": "Pembuatan cerita dari teks berikut: Jelaskan siklus air."},
+        },
+        {
+            "id": "fables-agentic",
+            "traceId": "trace-agentic",
+            "name": "fables_verify_all_claims",
+            "input": {"model": "google/gemini-2.5-flash", "user_input": "Cerita air."},
+        },
+    ]
+
+    samples = extract_geval_samples(rows)
+
+    assert len(samples) == 1
+    assert samples[0].source_observation_id == "critic-agentic"
+    assert samples[0].question == "Jelaskan siklus air."
+    assert samples[0].story == "Cerita air."
+    assert samples[0].source_root_observation_id == "root-agentic"
+
+
 def test_extract_geval_samples_keeps_source_root_observation_id():
     rows = [
         {

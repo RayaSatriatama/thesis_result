@@ -65,7 +65,9 @@ memaksa `openai/gpt-4o-mini` ke endpoint OpenAI tanpa fallback.
 `scripts/benchmark_openrouter_evaluators.py` membaca observation JSONL dan
 menulis artefak baru. Tiga kelompok hasilnya adalah `geval`, `fables`, dan
 `ragas`. G-Eval membaca pertanyaan serta cerita final dari observasi
-`critic_agent`. RAGAS dan FABLES memakai cerita serta konteks yang sama dari
+`critic_agent`; untuk export agentic lama yang hanya menyimpan ringkasan pada
+node tersebut, runner mengambil pertanyaan dari RAGAS dan cerita final dari
+FABLES dengan `traceId` yang sama. RAGAS dan FABLES memakai cerita serta konteks yang sama dari
 trace RAGAS. Saat keduanya dipilih, runner memanggil `RagasEvaluator.run()`
 satu kali, lalu menulis skor RAGAS dan FABLES yang memang sudah dikembalikan
 oleh evaluator tersebut. Tidak ada pipeline FABLES kedua dan skrip tidak

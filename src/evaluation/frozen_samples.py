@@ -205,6 +205,24 @@ def extract_geval_samples(rows: Iterable[Mapping[str, Any]]) -> list[FrozenGEval
     """Read final critic inputs that were previously evaluated by G-Eval."""
     materialized_rows = list(rows)
     roots_by_trace = _source_root_observation_ids(materialized_rows)
+    fallback_questions: dict[str, str] = {}
+    fallback_stories: dict[str, tuple[str, str]] = {}
+    for row in materialized_rows:
+        trace_id = str(row.get("traceId") or row.get("trace_id") or "").strip()
+        payload = _parse_json_object(row.get("input"))
+        if not trace_id or not payload:
+            continue
+        if row.get("name") in {"ragas_evaluation", "ragas_context_relevance"}:
+            question = str(payload.get("user_input") or "").strip()
+            prefix = "Pembuatan cerita dari teks berikut: "
+            if question.startswith(prefix):
+                question = question.removeprefix(prefix).strip()
+            if question:
+                fallback_questions[trace_id] = question
+        elif row.get("name") == "fables_verify_all_claims":
+            story = str(payload.get("user_input") or "").strip()
+            if story:
+                fallback_stories[trace_id] = (story, str(payload.get("model") or ""))
     samples: list[FrozenGEvalSample] = []
     seen_observation_ids: set[str] = set()
     for row in materialized_rows:
@@ -214,8 +232,12 @@ def extract_geval_samples(rows: Iterable[Mapping[str, Any]]) -> list[FrozenGEval
         input_payload = _parse_json_object(row.get("input"))
         output_payload = _parse_json_object(row.get("output"))
         ragas_scores = output_payload.get("ragas_scores") if output_payload else None
+        trace_id = str(row.get("traceId") or row.get("trace_id") or "").strip()
         question = str(input_payload.get("user_message") or "").strip() if input_payload else ""
         story = str(input_payload.get("story_content") or "").strip() if input_payload else ""
+        fallback_story, fallback_model = fallback_stories.get(trace_id, ("", ""))
+        question = question or fallback_questions.get(trace_id, "")
+        story = story or fallback_story
         if (
             not observation_id
             or observation_id in seen_observation_ids
@@ -225,7 +247,6 @@ def extract_geval_samples(rows: Iterable[Mapping[str, Any]]) -> list[FrozenGEval
             or "geval_coherence" not in ragas_scores
         ):
             continue
-        trace_id = str(row.get("traceId") or row.get("trace_id") or "").strip()
         seen_observation_ids.add(observation_id)
         samples.append(
             FrozenGEvalSample(
@@ -233,7 +254,7 @@ def extract_geval_samples(rows: Iterable[Mapping[str, Any]]) -> list[FrozenGEval
                 trace_id=trace_id,
                 question=question,
                 story=story,
-                source_evaluator_model=str(row.get("model") or ""),
+                source_evaluator_model=str(row.get("model") or fallback_model),
                 source_root_observation_id=roots_by_trace.get(trace_id, ""),
             )
         )

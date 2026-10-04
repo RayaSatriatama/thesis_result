@@ -1,0 +1,41 @@
+{
+  "source": {
+    "observations_dir": "output/gemini_historical_replay_20261005/source_observations"
+  },
+  "metrics": ["geval", "fables", "ragas"],
+  "execution": {"parallel": true, "max_concurrency": 2},
+  "langfuse": {
+    "enabled": false,
+    "mode": "local_export",
+    "session_id_template": "benchmark:{source_trace_id}",
+    "trace_name_prefix": "BenchmarkEvaluation",
+    "score_config_ids": {}
+  },
+  "ragas": {"embedding_model": "google/gemini-embedding-001", "require_free": false},
+  "evaluators": [
+    {
+      "id": "gpt4o-mini-openai",
+      "model": "openai/gpt-4o-mini",
+      "temperature": 0.0,
+      "require_free": false,
+      "provider_preferences": {
+        "only": ["openai"],
+        "allow_fallbacks": false,
+        "require_parameters": true,
+        "data_collection": "allow"
+      }
+    },
+    {
+      "id": "deepseek-v4.1-flash-deepinfra",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "temperature": 0.0,
+      "require_free": false,
+      "provider_preferences": {
+        "only": ["deepinfra"],
+        "allow_fallbacks": false,
+        "require_parameters": true,
+        "data_collection": "allow"
+      }
+    }
+  ]
+}
