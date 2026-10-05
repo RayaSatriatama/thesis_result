@@ -109,8 +109,15 @@ def extract_fables_samples(rows: Iterable[Mapping[str, Any]]) -> list[FrozenFabl
     roots_by_trace = _source_root_observation_ids(materialized_rows)
     contexts_by_trace: dict[str, tuple[str, ...]] = {}
     questions_by_trace: dict[str, str] = {}
+    stories_by_trace: dict[str, tuple[str, str]] = {}
     for row in materialized_rows:
         trace_id = str(row.get("traceId") or row.get("trace_id") or "").strip()
+        if row.get("name") == "critic_agent":
+            payload = _parse_json_object(row.get("input"))
+            story = str(payload.get("story_content") or "").strip() if payload else ""
+            if trace_id and story:
+                stories_by_trace[trace_id] = (story, str(row.get("model") or ""))
+            continue
         if row.get("name") == "ragas_evaluation":
             payload = _parse_json_object(row.get("input"))
             question = str(payload.get("user_input") or "").strip() if payload else ""
@@ -164,6 +171,36 @@ def extract_fables_samples(rows: Iterable[Mapping[str, Any]]) -> list[FrozenFabl
                 contexts=contexts,
                 context_origin=context_origin,
                 source_evaluator_model=str(payload.get("model") or ""),
+                question=questions_by_trace.get(trace_id, ""),
+                source_root_observation_id=roots_by_trace.get(trace_id, ""),
+            )
+        )
+
+    sampled_trace_ids = {sample.trace_id for sample in samples}
+    for row in materialized_rows:
+        if row.get("name") != "fables_faithfulness":
+            continue
+        trace_id = str(row.get("traceId") or row.get("trace_id") or "").strip()
+        observation_id = str(row.get("id") or "").strip()
+        story, source_model = stories_by_trace.get(trace_id, ("", ""))
+        contexts = contexts_by_trace.get(trace_id, ())
+        if (
+            not trace_id
+            or trace_id in sampled_trace_ids
+            or not observation_id
+            or not story
+            or not contexts
+        ):
+            continue
+        payload = _parse_json_object(row.get("input"))
+        samples.append(
+            FrozenFablesSample(
+                source_observation_id=observation_id,
+                trace_id=trace_id,
+                story=story,
+                contexts=contexts,
+                context_origin="ragas_context_relevance",
+                source_evaluator_model=str(payload.get("model") or source_model) if payload else source_model,
                 question=questions_by_trace.get(trace_id, ""),
                 source_root_observation_id=roots_by_trace.get(trace_id, ""),
             )

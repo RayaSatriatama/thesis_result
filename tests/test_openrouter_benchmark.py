@@ -344,6 +344,53 @@ def test_extract_fables_samples_recovers_question_from_ragas_trace():
     assert samples[0].question == "Jelaskan air."
 
 
+def test_extract_fables_samples_reads_current_workflow_fables_observation():
+    """Current workflow traces keep FABLES metadata separate from story and contexts."""
+    rows = [
+        {
+            "id": "root-4",
+            "traceId": "trace-4",
+            "name": "StoryGenerationWorkflow",
+        },
+        {
+            "id": "critic-4",
+            "traceId": "trace-4",
+            "parentObservationId": "root-4",
+            "name": "critic_agent",
+            "input": {"story_content": "Cerita peluncuran."},
+        },
+        {
+            "id": "ragas-question-4",
+            "traceId": "trace-4",
+            "name": "ragas_evaluation",
+            "input": {"user_input": "Pembuatan cerita dari teks berikut: Kapan roket meluncur?"},
+        },
+        {
+            "id": "ragas-context-4",
+            "traceId": "trace-4",
+            "name": "ragas_context_relevance",
+            "input": {"contexts": ["Roket meluncur pukul enam."]},
+        },
+        {
+            "id": "fables-summary-4",
+            "traceId": "trace-4",
+            "parentObservationId": "ragas-question-4",
+            "name": "fables_faithfulness",
+            "input": {"model": "deepseek/deepseek-v4.1-flash"},
+        },
+    ]
+
+    samples = extract_fables_samples(rows)
+
+    assert len(samples) == 1
+    assert samples[0].source_observation_id == "fables-summary-4"
+    assert samples[0].story == "Cerita peluncuran."
+    assert samples[0].contexts == ("Roket meluncur pukul enam.",)
+    assert samples[0].context_origin == "ragas_context_relevance"
+    assert samples[0].question == "Kapan roket meluncur?"
+    assert samples[0].source_root_observation_id == "root-4"
+
+
 def test_split_ragas_score_groups_keeps_fables_inside_existing_ragas_result():
     grouped = split_ragas_score_groups(
         {
