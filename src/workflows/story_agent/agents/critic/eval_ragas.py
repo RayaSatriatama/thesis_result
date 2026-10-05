@@ -24,6 +24,8 @@ FABLES_FAITHFUL = "FAITHFUL"
 FABLES_UNFAITHFUL = "UNFAITHFUL"
 FABLES_PARTIAL_SUPPORT = "PARTIAL_SUPPORT"
 FABLES_CANT_VERIFY = "CANT_VERIFY"
+EVALUATION_TIMEOUT_SECONDS = 1800
+
 
 def _epoch_wall_iso_ms(t: float) -> str:
     """UTC ISO-8601 with ms for Langfuse ingestion (wall clock when no export timeline)."""
@@ -245,10 +247,11 @@ class RagasEvaluator:
             uses_response: bool = True,
         ):
             """Execute one RAGAS metric with up to 3 retries; returns (name, value|None)."""
-            METRIC_TIMEOUT = 90
             for attempt in range(1, 4):
                 try:
-                    result = await asyncio.wait_for(coro_factory(), timeout=METRIC_TIMEOUT)
+                    result = await asyncio.wait_for(
+                        coro_factory(), timeout=EVALUATION_TIMEOUT_SECONDS
+                    )
                     value = result.value if hasattr(result, "value") else float(result)
                     if math.isnan(value):
                         raise ValueError(f"{name} returned NaN")
@@ -283,7 +286,8 @@ class RagasEvaluator:
 
                 except asyncio.TimeoutError:
                     logger.warning(
-                        f"[KRITIK::RAGAS] Metrik {name} melebihi batas waktu {METRIC_TIMEOUT}s "
+                        f"[KRITIK::RAGAS] Metrik {name} melebihi batas waktu "
+                        f"{EVALUATION_TIMEOUT_SECONDS}s "
                         f"(percobaan {attempt}/3). "
                         + ("Mencoba ulang..." if attempt < 3 else "Tidak dapat menyelesaikan metrik ini.")
                     )
@@ -412,7 +416,7 @@ class RagasEvaluator:
                     temperature=0.0,
                     **self._openrouter_request_kwargs(),
                 ),
-                timeout=90,
+                timeout=EVALUATION_TIMEOUT_SECONDS,
             )
             raw = response.choices[0].message.content or ""
             logger.debug(
@@ -457,7 +461,8 @@ class RagasEvaluator:
 
         except asyncio.TimeoutError:
             logger.warning(
-                "[KRITIK::FABLES] Ekstraksi klaim melebihi batas waktu (90 detik)."
+                "[KRITIK::FABLES] Ekstraksi klaim melebihi batas waktu "
+                f"({EVALUATION_TIMEOUT_SECONDS} detik)."
             )
             return []
         except Exception as e:
@@ -499,13 +504,16 @@ class RagasEvaluator:
                     temperature=0.0,
                     **self._openrouter_request_kwargs(),
                 ),
-                timeout=60,
+                timeout=EVALUATION_TIMEOUT_SECONDS,
             )
             raw = response.choices[0].message.content or ""
             return _parse_fables_verdict_llm(raw)
 
         except asyncio.TimeoutError:
-            logger.warning("[KRITIK::FABLES] Verifikasi klaim melebihi batas waktu (60 detik).")
+            logger.warning(
+                "[KRITIK::FABLES] Verifikasi klaim melebihi batas waktu "
+                f"({EVALUATION_TIMEOUT_SECONDS} detik)."
+            )
             return FABLES_CANT_VERIFY
         except Exception as e:
             logger.warning(f"[KRITIK::FABLES] Verifikasi klaim gagal: {e}")
