@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+Eval_Data/Full_400_Trace_Export_20261006_complete/observations.jsonl filter=lfs diff=lfs merge=lfs -text
+Eval_Data/Full_400_Trace_Export_20261006_complete/traces.jsonl filter=lfs diff=lfs merge=lfs -text
+Eval_Data/Full_400_Trace_Export_20261006_complete/traces_with_observations.jsonl filter=lfs diff=lfs merge=lfs -text
